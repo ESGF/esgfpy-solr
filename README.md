@@ -11,3 +11,8 @@ Check out this module from GitHub:
 git clone https://github.com/ESGF/esgfpy-solr.git
 cd esgfpy-solr
 ```
+Run the example script, which updates the Solr master catalog at http://localhost:8984/solr:
+```shell
+export PYTHONPATH=.
+python esgfpy/solr/example.py
+```
