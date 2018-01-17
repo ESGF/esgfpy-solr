@@ -4,6 +4,9 @@ Using this module requires no authentication or authorization, since the client 
 assumed to be freely available (typically, on a restricted port such as 8984 to clients on localhost).
 This module has no dependencies except for those already contained in a standard Python installation.
 
+Behind the scenes, the module parses the metadata update instructions provided by the user, and encodes them in an XML document that
+follows the Solr specificiation for tomic updates, then sends this XML document to the Solr server.
+
 ## Quick Start
 
 Check out this module from GitHub:
