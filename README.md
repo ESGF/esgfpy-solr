@@ -5,7 +5,7 @@ assumed to be freely available (typically, on a restricted port such as 8984 to 
 This module has no dependencies except for those already contained in a standard Python installation.
 
 Behind the scenes, the module parses the metadata update instructions provided by the user, and encodes them in an XML document that
-follows the Solr specificiation for atomic updates, then sends it to the Solr server for processing. The Solr XML document is divided into multiple sections, each of which updates a single record. Example of XML document sent by the client to the Solr server:
+follows the Solr specificiation for atomic updates, then sends it to the Solr server for processing. The Solr XML document is divided into multiple sections, each of which executes a single atomic update. An example of XML document sent by the client to the Solr server follows:
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
     <add>
