@@ -74,3 +74,8 @@ update_solr(update_dict, update='add', solr_url=solr_url, solr_core='datasets')
 update_dict = { 'project:obs4MIPs': {'location':[], 'stratus':None } }          
 update_solr(update_dict, update='set', solr_url=solr_url, solr_core='datasets')
 ```
+* To copy the value of the field *project* to the field *activity_id*:
+```python
+update_dict = { 'project:obs4MIPs': {'activity_id':['$project'] } }          
+update_solr(update_dict, update='set', solr_url=solr_url, solr_core='datasets')
+```
