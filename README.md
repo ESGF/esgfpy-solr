@@ -35,7 +35,8 @@ Semantics:
 * Use **update='set'** with None or [] value to remove a field and all its existing values
 
 Notes:
-* Multiple query constraints can be combines with '&', for example: 
+* The update dictionary can contain multiple (query, instructions) pairs, which are processed sequentially
+* For each query, multiple constraints can be combined with '&', for example: 
   * 'id:obs4MIPs.NASA-JPL.AIRS.mon.v1|esgf-node.jpl.nasa.gov&variable:hus*'
 * To remove a field, set its value to None or to an empty list, for example: 
   * xlink':None or 'xlink':[]
