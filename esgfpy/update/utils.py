@@ -2,11 +2,66 @@ import json
 import logging
 import urllib
 import urllib2
+import ssl
 from xml.etree.ElementTree import Element, SubElement, tostring
 
 logging.basicConfig(level=logging.INFO)
 
+# FIXME
 MAX_ROWS = 1000 # maximum number of records returned by a Solr query
+
+# NOTE: PROTOCOL_TLSv1_2 support requires Python 2.7.13+
+ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+
+def query_solr(query, fields, solr_url='http://localhost:8984/solr', solr_core='datasets'):
+    '''
+    Method to query a Solr catalog for records matching specific constraints.
+    
+    query: query constraints, separated by '&'
+    fields: list of fields to be returned in matching documents
+    
+    returns a list of result documents, each list item is a dictionary of the requested fields
+    '''
+    
+    solr_core_url = solr_url+"/"+solr_core
+    queries = query.split('&')    
+    start = 0
+    numFound = start+1
+    results = []
+        
+    # 1) query for all matching records
+    while start < numFound:
+    
+        # build Solr select URL
+        # example: http://localhost:8984/solr/datasets/select?q=%2A%3A%2A&fl=id&fl=version&fl=latest&fl=replica&fl=master_id&wt=json&indent=true&start=0&rows=5&fq=replica%3Dfalse&fq=latest%3Dtrue
+        url = solr_core_url + "/select"
+        params = [ ('q','*:*'), 
+                   ('wt','json'), ('indent','true'),
+                   ('start', start), ('rows', MAX_ROWS) ]
+        for fq in queries:
+            params.append( ('fq',fq) )
+        for fl in fields:
+            params.append( ('fl',fl) )
+                        
+        # execute query to Solr
+        url = url + "?"+urllib.urlencode(params)
+        logging.debug('Executing Solr search URL=%s' % url)
+        fh = urllib2.urlopen( url, context=ssl_context )
+        response = fh.read().decode("UTF-8")
+        jobj = json.loads(response)
+        
+        # summary information
+        numFound = jobj['response']['numFound']
+        numRecords = len( jobj['response']['docs'] )
+        start += numRecords
+        logging.debug("Total number of records found: %s number of records returned: %s" % (numFound, numRecords))
+        
+        # loop over result documents, add to the list
+        for doc in jobj['response']['docs']:
+            results.append( doc )
+
+    return results
+        
 
 def update_solr(update_dict, update='set', solr_url='http://localhost:8984/solr', solr_core='datasets'):
     '''
@@ -42,7 +97,7 @@ def update_solr(update_dict, update='set', solr_url='http://localhost:8984/solr'
     
     # process each query separately
     for query, fieldDict in update_dict.items():
-        logging.info("SOLR QUERY: %s" % query)
+        logging.debug("Executing Solr query: %s" % query)
         queries = query.split('&')
     
         # VERY IMPORTANT: FIRST QUERY FOR ALL RESULTS
@@ -87,14 +142,14 @@ def _buildSolrXml(solr_core_url, queries, fieldDict, update='set', start=0):
         
     # execute query to Solr
     url = url + "?"+urllib.urlencode(params)
-    logging.info('Executing Solr search URL=%s' % url)
+    logging.debug('Executing Solr search URL=%s' % url)
     fh = urllib2.urlopen( url )
     response = fh.read().decode("UTF-8")
     jobj = json.loads(response)
     
     numFound = jobj['response']['numFound']
     numRecords = len( jobj['response']['docs'] )
-    logging.info("Total number of records found: %s number of records returned: %s" % (numFound, numRecords))
+    logging.debug("Total number of records found: %s number of records returned: %s" % (numFound, numRecords))
                 
     # update all records matching the query
     # <add>
@@ -160,7 +215,7 @@ def _sendSolrXml(solr_core_url, xmlDoc):
     r = urllib2.Request(url, data=xmlDoc, headers={'Content-Type': 'application/xml'})
     u = urllib2.urlopen(r)
     response = u.read()
-    logging.info(response)
+    logging.debug(response)
 
 
 def _commit(solr_core_url):
