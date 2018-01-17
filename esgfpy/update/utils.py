@@ -119,12 +119,18 @@ def _buildSolrXml(solr_core_url, queries, fieldDict, update='set', start=0):
                     # special case: override 'fieldValue' with value(s) from another field
                     if fieldValue[0]=='$':
                         _fieldName = fieldValue[1:] # field to copy from
+                        print '_fieldName=%s' % _fieldName
                         _fieldValues = result.get(_fieldName, None)
+                        print '_fieldValues=%s' % _fieldValues
                         if _fieldValues is not None and len(_fieldValues)>0:  
-                            for _fieldValue in _fieldValues:
-                                # <field name="xlink" update="set">https://earthsystemcog.org/.../taTechNote_AIRS_L3_RetStd-v5_200209-201105.pdf|AIRS Air Temperature Technical Note|technote</field>
+                            if hasattr(_fieldValues, '__iter__'): # multiple values
+                                for _fieldValue in _fieldValues:
+                                    # <field name="xlink" update="set">https://earthsystemcog.org/.../taTechNote_AIRS_L3_RetStd-v5_200209-201105.pdf|AIRS Air Temperature Technical Note|technote</field>
+                                    el = SubElement(docEl, "field", attrib={ "name": fieldName, 'update': update })
+                                    el.text = _fieldValue
+                            else:# single value
                                 el = SubElement(docEl, "field", attrib={ "name": fieldName, 'update': update })
-                                el.text = _fieldValue
+                                el.text = _fieldValues
 
                     # otherwise use the specified value
                     else:
