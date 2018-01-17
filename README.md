@@ -5,7 +5,7 @@ assumed to be freely available (typically, on a restricted port such as 8984 to 
 This module has no dependencies except for those already contained in a standard Python installation.
 
 Behind the scenes, the module parses the metadata update instructions provided by the user, and encodes them in an XML document that
-follows the Solr specificiation for tomic updates, then sends this XML document to the Solr server.
+follows the Solr specificiation for atomic updates, then sends it to the Solr server for processing.
 
 ## Quick Start
 
@@ -34,6 +34,8 @@ Semantics:
 * Use **update='add'** to add new values to existing fields
 * Use **update='set'** with None or [] value to remove a field and all its existing values
 
+Multiple query constraints can be combines with '&', for example: 'id:obs4MIPs.NASA-JPL.AIRS.mon.v1|esgf-node.jpl.nasa.gov&variable:hus*'
+
 Examples:
 
 * To add two new fields to all obs4MIPs datasets:
@@ -43,4 +45,10 @@ from esgfpy.update.utils import update_solr
 solr_url = 'http://localhost:8984/solr'
 update_dict = { 'project:obs4MIPs': {'location':['Pasadena'], 'realm':['atmosphere'] } }          
 update_solr(update_dict, update='set', solr_url=solr_url, solr_core='datasets')
+```
+
+* To add additional values to existing or new fields:
+```python
+update_dict = { 'project:obs4MIPs&source_id:MLS': {'location':['Boulder'], 'stratus':['cumulus'] } }          
+update_solr(update_dict, update='add', solr_url=solr_url, solr_core='datasets')
 ```
