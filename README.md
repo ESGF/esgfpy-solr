@@ -20,9 +20,13 @@ python esgfpy/solr/example.py
 ## Usage details
 To use this client, you must encode the update instructions in a Python dictionary of this form:
 ```python
-updateDict = { '<query expression>': { 'field1':['value1a','value1b',...], 'field2':['value2a','value2b',...], ... } }
+update_dict = { '<query expression>': { 'field1':['value1a','value1b',...], 'field2':['value2a','value2b',...], ... } }
 ```
 and pass it to the following method:
 ```python
-def updateSolr(updateDict, update='set', solr_url='http://localhost:8984/solr', solr_core='datasets'):
+def updateSolr(update_dict, update='set', solr_url='http://localhost:8984/solr', solr_core='datasets'):
 ```
+Semantics:
+* Use *update='set'* to add new fields and values, overriding previous fields if existing already
+* Use *update='add'* to add new values to existing fields
+* Use *update='set'* with None or [] values to remove a field and all its existing values
