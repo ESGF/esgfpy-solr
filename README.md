@@ -34,7 +34,11 @@ Semantics:
 * Use **update='add'** to add new values to existing fields
 * Use **update='set'** with None or [] value to remove a field and all its existing values
 
-Multiple query constraints can be combines with '&', for example: 'id:obs4MIPs.NASA-JPL.AIRS.mon.v1|esgf-node.jpl.nasa.gov&variable:hus*'
+Notes:
+* Multiple query constraints can be combines with '&', for example: 
+** 'id:obs4MIPs.NASA-JPL.AIRS.mon.v1|esgf-node.jpl.nasa.gov&variable:hus*'
+* To remove a field, set its value to None or to an empty list, for example: 
+** xlink':None or 'xlink':[]
 
 Examples:
 
