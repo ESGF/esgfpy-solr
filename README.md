@@ -24,9 +24,20 @@ update_dict = { '<query expression>': { 'field1':['value1a','value1b',...], 'fie
 ```
 and pass it to the following method:
 ```python
-def updateSolr(update_dict, update='set', solr_url='http://localhost:8984/solr', solr_core='datasets'):
+def update_solr(update_dict, update='set', solr_url='http://localhost:8984/solr', solr_core='datasets'):
 ```
 Semantics:
-* Use *update='set'* to add new fields and values, overriding previous fields if existing already
-* Use *update='add'* to add new values to existing fields
-* Use *update='set'* with None or [] values to remove a field and all its existing values
+* Use **update='set'** to add new fields and values, overriding previous fields if existing already
+* Use **update='add'** to add new values to existing fields
+* Use **update='set'** with None or [] value to remove a field and all its existing values
+
+Examples:
+
+* To add two new fields to all obs4MIPs datasets:
+```python
+from esgfpy.update.utils import update_solr
+
+solr_url = 'http://localhost:8984/solr'
+update_dict = { 'project:obs4MIPs': {'location':['Pasadena'], 'realm':['atmosphere'] } }          
+update_solr(update_dict, update='set', solr_url=solr_url, solr_core='datasets')
+```
