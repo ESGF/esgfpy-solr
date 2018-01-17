@@ -8,14 +8,14 @@ logging.basicConfig(level=logging.INFO)
 
 MAX_ROWS = 1000 # maximum number of records returned by a Solr query
 
-def updateSolr(updateDict, update='set', solr_url='http://localhost:8984/solr', solr_core='datasets'):
+def update_solr(update_dict, update='set', solr_url='http://localhost:8984/solr', solr_core='datasets'):
     '''
     Method to bulk-update all matching records in a Solr index.
     
-    updateDict: dictionary of Solr queries to map of field name and values to be updated for all matching results
+    update_dict: dictionary of Solr queries to map of field name and values to be updated for all matching results
     update='set' to override the previous values of that field, update'add' to add new values to that field
 
-    Example of updateDict:
+    Example of update_dict:
     setDict = { 'id:test.test.v1.testData.nc|esgf-dev.jpl.nasa.gov': 
                 {'xlink':['http://esg-datanode.jpl.nasa.gov/.../zosTechNote_AVISO_L4_199210-201012.pdf|AVISO Sea Surface Height Technical Note|summary']}}
                 
@@ -41,7 +41,7 @@ def updateSolr(updateDict, update='set', solr_url='http://localhost:8984/solr', 
     solr_core_url = solr_url+"/"+solr_core
     
     # process each query separately
-    for query, fieldDict in updateDict.items():
+    for query, fieldDict in update_dict.items():
         logging.info("SOLR QUERY: %s" % query)
         queries = query.split('&')
     
