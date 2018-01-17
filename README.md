@@ -7,6 +7,7 @@ This module has no dependencies except for those already contained in a standard
 ## Quick Start
 
 Check out this module from GitHub:
-
-  git clone https://github.com/ESGF/esgfpy-solr.git
-  cd esgfpy-solr
+```shell
+git clone https://github.com/ESGF/esgfpy-solr.git
+cd esgfpy-solr
+```
