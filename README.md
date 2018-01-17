@@ -14,7 +14,7 @@ follows the Solr specificiation for atomic updates, then sends it to the Solr se
             <field name="xlink" update="add">http://esg-datanode.jpl.nasa.gov/.../zosTechNote_AVISO_L4_199210-201012.pdf|AVISO Sea Surface Height Technical Note|summary</field>
         </doc>
     </add>
-    ```
+```
 
 ## Quick Start
 
