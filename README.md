@@ -36,9 +36,9 @@ Semantics:
 
 Notes:
 * Multiple query constraints can be combines with '&', for example: 
-** 'id:obs4MIPs.NASA-JPL.AIRS.mon.v1|esgf-node.jpl.nasa.gov&variable:hus*'
+  * 'id:obs4MIPs.NASA-JPL.AIRS.mon.v1|esgf-node.jpl.nasa.gov&variable:hus*'
 * To remove a field, set its value to None or to an empty list, for example: 
-** xlink':None or 'xlink':[]
+  * xlink':None or 'xlink':[]
 
 Examples:
 
