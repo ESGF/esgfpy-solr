@@ -39,6 +39,9 @@ Notes:
   * 'id:obs4MIPs.NASA-JPL.AIRS.mon.v1|esgf-node.jpl.nasa.gov&variable:hus*'
 * To remove a field, set its value to None or to an empty list, for example: 
   * xlink':None or 'xlink':[]
+* To transfer the value of field1 to field2, use the special '$' notation: { query: { 'field2':[$field1], ... } }
+* To rename a field, you must first transfer the value to the new field, then delete the old field, for example: 
+  * {'project:CORDEX': {'rcm_name':['$model'], 'model':None } }
 
 Examples:
 
