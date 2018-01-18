@@ -13,6 +13,19 @@ MAX_ROWS = 1000 # maximum number of records returned by a Solr query
 # NOTE: PROTOCOL_TLSv1_2 support requires Python 2.7.13+
 ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 
+def query_esgf(query_params, url='http://localhost/esg-search/search/'):
+    '''
+    Method to query an ESGF index node
+    '''
+    
+    esgf_url = url + "?" + urllib.urlencode(query_params)
+    logging.debug('Executing ESGF query URL=%s' % esgf_url)
+    fh = urllib2.urlopen( esgf_url, context=ssl_context )
+    response = fh.read().decode("UTF-8")
+    jobj = json.loads(response)
+    return jobj
+
+
 def query_solr(query, fields, solr_url='http://localhost:8984/solr', solr_core='datasets'):
     '''
     Method to query a Solr catalog for records matching specific constraints.
