@@ -7,9 +7,8 @@ import datetime
 
 # URLs
 local_master_solr_url = 'http://localhost:8984/solr'
-# FIXME
-local_index_node_url = 'https://esgf-node.llnl.gov/esg-search/search/'
-#local_index_node_url = 'http://localhost/esg-search/search/'
+local_index_node_url = 'http://localhost/esg-search/search/'
+#local_index_node_url = 'https://esgf-node.llnl.gov/esg-search/search/'
 
 def main():
     
