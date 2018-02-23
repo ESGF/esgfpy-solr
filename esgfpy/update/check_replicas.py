@@ -44,7 +44,7 @@ def check_replicas(project,
     num_datasets_updated = 0
     
     # 1) query all remote index nodes for the latest primary datasets that have changed in the given time period
-    fields = ['id','master_id','version']
+    fields = ['id','master_id','version','_timestamp']
     for index_node in index_nodes:  
 
         try:
@@ -62,8 +62,9 @@ def check_replicas(project,
         for doc1 in docs1:
             v1 = int( doc1['version'] )
             master_id = doc1['master_id']
-            #dataset_id1 = doc1['id']
-            logging.info("\tChecking local Solr %s for dataset with master_id=%s, replica=true, latest=true" % (local_master_solr_url, master_id) )
+            dataset_id1 = doc1['id']
+            _timestamp1 = doc1['_timestamp']
+            logging.info("\tChecking local Solr=%s for replica of dataset=%s version=%s _timestamp=%s" % (local_master_solr_url, dataset_id1, v1, _timestamp1) )
 
             query2 = 'master_id:%s&replica:true&latest:true' % master_id
             docs2 = query_solr(query2, fields, solr_url=local_master_solr_url, solr_core='datasets')
