@@ -61,7 +61,7 @@ def check_replicas(project,
             v1 = int( doc1['version'] )
             master_id = doc1['master_id']
             #dataset_id1 = doc1['id']
-            logging.debug("Checking local Solr %s for copy of dataset with master_id=%s" % (local_master_solr_url, master_id) )
+            logging.info("\tChecking local Solr %s for copy of dataset with master_id=%s" % (local_master_solr_url, master_id) )
 
             query2 = 'master_id:%s&replica:true&latest:true' % master_id
             docs2 = query_solr(query2, fields, solr_url=local_master_solr_url, solr_core='datasets')

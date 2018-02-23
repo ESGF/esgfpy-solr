@@ -67,7 +67,7 @@ def query_solr(query, fields, solr_url='http://localhost:8984/solr', solr_core='
         numFound = jobj['response']['numFound']
         numRecords = len( jobj['response']['docs'] )
         start += numRecords
-        logging.info("Total number of records found: %s number of records returned: %s" % (numFound, numRecords))
+        logging.info("\t\tTotal number of records found: %s number of records returned: %s" % (numFound, numRecords))
         
         # loop over result documents, add to the list
         for doc in jobj['response']['docs']:
