@@ -40,6 +40,8 @@ def check_replicas(project,
     index_nodes = jobj['facet_counts']['facet_fields']['index_node'][0::2]
     logging.debug("Querying index nodes: %s" % index_nodes)
     
+    # counter
+    num_datasets_updated = 0
     
     # 1) query all remote index nodes for the latest primary datasets that have changed in the given time period
     fields = ['id','master_id','version']
@@ -85,6 +87,10 @@ def check_replicas(project,
                     update_dict = { 'dataset_id:%s' % dataset_id2 : {'latest':['false'] } }
                     #update_solr(update_dict, update='set', solr_url=local_master_solr_url, solr_core='files')
                     #update_solr(update_dict, update='set', solr_url=local_master_solr_url, solr_core='aggregations')
+                    
+                    num_datasets_updated += 1
+                    
+    logging.info("Total number of local replica updated=%s" % num_datasets_updated)
         
  
 if __name__ == '__main__':
