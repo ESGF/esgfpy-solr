@@ -53,6 +53,8 @@ def check_replicas(project,
             logging.info("Querying Solr=%s for datasets with project=%s start_datetime=%s stop_datetime=%s" % (remote_slave_solr_url, project, start_datetime, stop_datetime) )
             query1 = 'project:%s&replica:false&latest:true&_timestamp:[%s TO %s]' % (project, start_datetime, stop_datetime)
             docs1 = query_solr(query1, fields, solr_url=remote_slave_solr_url, solr_core='datasets')
+            if len(docs1) > 0:
+                logging.info("\tFound %s datasets that have changed, checking local Solr for replicas" % len(docs1))
             
         except urllib2.HTTPError:
             logging.error("Error querying index node %s" % remote_slave_solr_url)
@@ -78,16 +80,16 @@ def check_replicas(project,
                 dataset_id2 = doc2['id']
 
                 if v1 > v2: # remote primary has newer version --> local replica must be updated
-                    logging.warn("Found newer version: %s for dataset: %s at site: %s" % (v2, master_id, remote_slave_solr_url) )
-                    logging.warn("Updating status of local dataset: %s to latest=false" % dataset_id2 )
+                    logging.warn("\t\tFound newer version: %s for dataset: %s at site: %s" % (v2, master_id, remote_slave_solr_url) )
+                    logging.warn("\t\tUpdating status of local dataset: %s to latest=false" % dataset_id2 )
                     
                     # FIXME
                     # 3) set latest flag of local replica to false for dataset, files, aggregations
                     update_dict = { 'id:%s' % dataset_id2 : {'latest':['false'] } }
-                    #update_solr(update_dict, update='set', solr_url=local_master_solr_url, solr_core='datasets')
+                    update_solr(update_dict, update='set', solr_url=local_master_solr_url, solr_core='datasets')
                     update_dict = { 'dataset_id:%s' % dataset_id2 : {'latest':['false'] } }
-                    #update_solr(update_dict, update='set', solr_url=local_master_solr_url, solr_core='files')
-                    #update_solr(update_dict, update='set', solr_url=local_master_solr_url, solr_core='aggregations')
+                    update_solr(update_dict, update='set', solr_url=local_master_solr_url, solr_core='files')
+                    update_solr(update_dict, update='set', solr_url=local_master_solr_url, solr_core='aggregations')
                     
                     num_datasets_updated += 1
                     
