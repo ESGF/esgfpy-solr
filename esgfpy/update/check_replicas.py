@@ -23,14 +23,15 @@ def check_replicas(project,
                    start_datetime=datetime.datetime.strftime(
                                                              datetime.datetime.now() - datetime.timedelta(days=LAST_NUMBER_OF_DAYS), 
                                                              '%Y-%m-%dT%H:%M:%SZ'), 
-                   stop_datetime=datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%dT%H:%M:%SZ')):
+                   stop_datetime=datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%dT%H:%M:%SZ'),
+                   dry_run=False):
     '''
     Checks replicas for a specific project.
     By default it will check datasets that have changed in the past week.
     start_datetime, stop_datetime must be string in the format "2017-01-07T00:00:00.831Z"
     '''
     
-    logging.info("Checking replicas start datetime=%s stop datetime=%s" % (start_datetime, stop_datetime))
+    logging.info("Checking replicas start datetime=%s stop datetime=%s dry_run=%s" % (start_datetime, stop_datetime, dry_run))
         
     # 0) retrieve the latest list of ESGF index nodes
     # query: https://esgf-node.jpl.nasa.gov/esg-search/search/?offset=0&limit=0&type=Dataset&facets=index_node&format=application%2Fsolr%2Bjson
@@ -85,11 +86,12 @@ def check_replicas(project,
                     
                     # FIXME
                     # 3) set latest flag of local replica to false for dataset, files, aggregations
-                    update_dict = { 'id:%s' % dataset_id2 : {'latest':['false'] } }
-                    update_solr(update_dict, update='set', solr_url=local_master_solr_url, solr_core='datasets')
-                    update_dict = { 'dataset_id:%s' % dataset_id2 : {'latest':['false'] } }
-                    update_solr(update_dict, update='set', solr_url=local_master_solr_url, solr_core='files')
-                    update_solr(update_dict, update='set', solr_url=local_master_solr_url, solr_core='aggregations')
+                    if not dry_run:
+                        update_dict = { 'id:%s' % dataset_id2 : {'latest':['false'] } }
+                        update_solr(update_dict, update='set', solr_url=local_master_solr_url, solr_core='datasets')
+                        update_dict = { 'dataset_id:%s' % dataset_id2 : {'latest':['false'] } }
+                        update_solr(update_dict, update='set', solr_url=local_master_solr_url, solr_core='files')
+                        update_solr(update_dict, update='set', solr_url=local_master_solr_url, solr_core='aggregations')
                     
                     num_datasets_updated += 1
                     
@@ -98,8 +100,8 @@ def check_replicas(project,
  
 if __name__ == '__main__':
     
-    if len(sys.argv) < 2 or len(sys.argv) >4:
-        logging.error("Usage: check_replicas.py <project> <optional start_date as YYYY-MM-DD> <optional stop_date as YYYY-MM-DD>")
+    if len(sys.argv) < 2 or len(sys.argv) > 5:
+        logging.error("Usage: check_replicas.py <project> <optional start_date as YYYY-MM-DD> <optional stop_date as YYYY-MM-DD> <optional '--dry_run'>")
         sys.exit(-1)
         
     elif len(sys.argv) == 2:
@@ -111,5 +113,14 @@ if __name__ == '__main__':
         
     elif len(sys.argv) == 4:
         
-        check_replicas( sys.argv[1], start_datetime="%sT00:00:00.000Z"  % sys.argv[2],  stop_datetime="%sT00:00:00.000Z"  % sys.argv[3],)
+        check_replicas( sys.argv[1], start_datetime="%sT00:00:00.000Z"  % sys.argv[2],  stop_datetime="%sT00:00:00.000Z"  % sys.argv[3])
     
+    elif len(sys.argv) == 5:
+        
+        if 'dry_run' in sys.argv[4]:
+            dry_run = True
+        else:
+            dry_run = False
+            
+        check_replicas( sys.argv[1], start_datetime="%sT00:00:00.000Z"  % sys.argv[2],  stop_datetime="%sT00:00:00.000Z"  % sys.argv[3], dry_run = dry_run)
+        
