@@ -5,7 +5,7 @@ import urllib2
 import ssl
 from xml.etree.ElementTree import Element, SubElement, tostring
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 # FIXME
 MAX_ROWS = 1000 # maximum number of records returned by a Solr query
@@ -107,6 +107,7 @@ def update_solr(update_dict, update='set', solr_url='http://localhost:8984/solr'
     '''
     
     solr_core_url = solr_url+"/"+solr_core
+    print 'UPDATING SOLR=%s' % solr_core_url
     
     # process each query separately
     for query, fieldDict in update_dict.items():
