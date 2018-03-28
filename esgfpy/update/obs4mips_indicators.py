@@ -7,14 +7,14 @@ from pprint import pprint
 import json
 import urllib2
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 # constants
 #SOLR_URL = 'http://esgf-node.jpl.nasa.gov:8984/solr'
 SOLR_URL = 'http://localhost:8984/solr'
-#INDICATORS_URL='https://raw.githubusercontent.com/EarthSystemCoG/esgfpy-publish/master/esgfpy/obs4mips/obs4mips_indicators.json'
+INDICATORS_URL='https://raw.githubusercontent.com/EarthSystemCoG/esgfpy-publish/master/esgfpy/obs4mips/obs4mips_indicators.json'
 #INDICATORS_URL='https://raw.githubusercontent.com/PCMDI/obs4MIPs-cmor-tables/master/src/tt/obs4MIPs-indicators.json'
-INDICATORS_URL='file:///Users/cinquini/tmp/obs4mips_indicators.json'
+#INDICATORS_URL='file:///Users/cinquini/tmp/obs4mips_indicators.json'
 
 # read climate indicators file
 response = urllib2.urlopen(INDICATORS_URL)
