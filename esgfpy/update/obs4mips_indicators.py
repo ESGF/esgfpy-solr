@@ -16,12 +16,18 @@ INDICATORS_URL='https://raw.githubusercontent.com/EarthSystemCoG/esgfpy-publish/
 #INDICATORS_URL='https://raw.githubusercontent.com/PCMDI/obs4MIPs-cmor-tables/master/src/tt/obs4MIPs-indicators.json'
 #INDICATORS_URL='file:///Users/cinquini/tmp/obs4mips_indicators.json'
 
+INDICATORS_FILE="obs4mips_indicators.json"
+
 # read climate indicators file
-response = urllib2.urlopen(INDICATORS_URL)
-html = response.read()
-json_data = json.loads(html)
+#response = urllib2.urlopen(INDICATORS_URL)
+
+#html = response.read()
+
+
+
+json_data = json.load(open(INDICATORS_FILE))
 pprint(json_data)
-response.close()  # best practice to close the file
+#response.close()  # best practice to close the file
 
 # publish to Solr
 update_solr(json_data, update='set', solr_url=SOLR_URL, solr_core='datasets')
