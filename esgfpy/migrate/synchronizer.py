@@ -4,8 +4,6 @@ Python module to synchronize a source and target Sorl servers.
 
 import logging
 import argparse
-logging.basicConfig(level=logging.INFO)
-
 import solr
 import urllib
 import json
@@ -13,6 +11,8 @@ import dateutil.parser
 from datetime import timedelta
 from monthdelta import monthdelta
 from esgfpy.migrate.solr2solr import migrate
+
+logging.basicConfig(level=logging.INFO)
 
 DEFAULT_QUERY = "*:*"
 
@@ -47,7 +47,9 @@ class Synchronizer(object):
 
         # flag to trigger commit/harvest
         synced = False
-        numRecordsSynced = {CORE_DATASETS:0, CORE_FILES:0, CORE_AGGREGATIONS: 0}
+        numRecordsSynced = {CORE_DATASETS: 0,
+                            CORE_FILES: 0,
+                            CORE_AGGREGATIONS: 0}
 
         # loop over cores
         for core in CORES:
@@ -123,7 +125,7 @@ class Synchronizer(object):
                                 # 3) loop over HOURS
                                 datetime_stop_hour = datetime_stop_day
                                 datetime_start_hour = datetime_stop_day
-                                while datetime_stop_hour >= (datetime_start_day+TIMEDELTA_HOUR):
+                                while datetime_stop_hour >= (datetime_start_day + TIMEDELTA_HOUR):
 
                                     datetime_stop_hour = datetime_start_hour
                                     datetime_start_hour = (
@@ -139,7 +141,8 @@ class Synchronizer(object):
                                                                query=query,
                                                                fq=timestamp_query_hour)
 
-                                    # migrate records source_solr --> target_solr
+                                    # migrate records source_solr
+                                    # --> target_solr
                                     if not retDict['status']:
                                         logging.info(
                                             "\t\t\tHOUR sync=%s "
@@ -166,10 +169,10 @@ class Synchronizer(object):
                                         else:
                                             numRecordsSynced[core] += (
                                                 self._sync_records_by_time(
-                                                    core, query, 
+                                                    core, query,
                                                     timestamp_query_hour))
 
-                                        # check DAY sync again to determine 
+                                        # check DAY sync again to determine
                                         # whether the hour loop can be stopped
                                         retDict = self._check_sync(
                                             core=core, query=query,
@@ -194,7 +197,7 @@ class Synchronizer(object):
                                     # break out of the DAY bin loop
                                     break
 
-                            # check FULL sync again to determine whether 
+                            # check FULL sync again to determine whether
                             # the day loop can be stopped
                             retDict = self._check_sync(core=core, query=query)
                             if retDict['status']:
@@ -398,7 +401,7 @@ class Synchronizer(object):
                                     self.target_solr_base_url,
                                     CORE_FILES,
                                     query='dataset_id:%s' % source_dataset_id,
-                                    commit=True, 
+                                    commit=True,
                                     optimize=False)
                 numAggregations += migrate(
                     self.source_solr_base_url,
