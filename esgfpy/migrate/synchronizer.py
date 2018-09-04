@@ -155,8 +155,8 @@ class Synchronizer(object):
                                         if core == CORE_DATASETS:
                                             (numDatasets, numFiles,
                                              numAggregations) = (
-                                                 self._sync_records_by_id(
-                                                     core, query,
+                                                 self._sync_all_cores_by_dataset_id(
+                                                     query,
                                                      timestamp_query_hour))
                                             numRecordsSynced[CORE_DATASETS] += numDatasets
                                             numRecordsSynced[CORE_FILES] += numFiles
@@ -360,56 +360,87 @@ class Synchronizer(object):
         # return output
         return [counts, timestamp_min, timestamp_max, timestamp_mean]
 
-    def _sync_records_by_id(self, core, query, timestamp_query):
+    def _sync_all_cores_by_dataset_id(self, query, timestamp_query):
         '''
-        Method that executes synchronization of all cores based on the dataset id 
-        (within a given time interval).
+        Method that executes synchronization of all cores
+        based on the dataset id (within a given time interval).
         '''
 
         # number of records copied from source Solr --> target Solr
         numDatasets = 0
         numFiles = 0
         numAggregations = 0
-        
+
         # query for dataset ids from source, target Solrs
         print("Querying source")
-        source_dataset_ids = self._query_dataset_ids(self.source_solr_base_url, CORE_DATASETS, query, timestamp_query)
+        source_dataset_ids = self._query_dataset_ids(self.source_solr_base_url,
+                                                     CORE_DATASETS, query,
+                                                     timestamp_query)
         print("Querying target")
-        target_dataset_ids = self._query_dataset_ids(self.target_solr_base_url, CORE_DATASETS, query, timestamp_query)
-        
+        target_dataset_ids = self._query_dataset_ids(self.target_solr_base_url,
+                                                     CORE_DATASETS, query,
+                                                     timestamp_query)
+
         # synchronize source Solr --> target Solr
         # commit after every core query
         for source_dataset_id in source_dataset_ids.keys():
             if source_dataset_id not in target_dataset_ids or source_dataset_ids[source_dataset_id] != target_dataset_ids[source_dataset_id]:
-                logging.info("\t\t\t\tCopying source dataset=%s" % source_dataset_id)
-                
-                numDatasets += migrate(self.source_solr_base_url, self.target_solr_base_url, CORE_DATASETS, query='id:%s' % source_dataset_id,
-                                       commit=True, optimize=False)
-                numFiles += migrate(self.source_solr_base_url, self.target_solr_base_url, CORE_FILES, query='dataset_id:%s' % source_dataset_id,
-                                    commit=True, optimize=False)
-                numAggregations += migrate(self.source_solr_base_url, self.target_solr_base_url, CORE_AGGREGATIONS, query='dataset_id:%s' % source_dataset_id,
-                                           commit=True, optimize=False)
-        
+                logging.info("\t\t\t\tCopying source dataset="
+                             "%s" % source_dataset_id)
+
+                numDatasets += migrate(self.source_solr_base_url,
+                                       self.target_solr_base_url,
+                                       CORE_DATASETS,
+                                       query='id:%s' % source_dataset_id,
+                                       commit=True,
+                                       optimize=False)
+                numFiles += migrate(self.source_solr_base_url,
+                                    self.target_solr_base_url,
+                                    CORE_FILES,
+                                    query='dataset_id:%s' % source_dataset_id,
+                                    commit=True, 
+                                    optimize=False)
+                numAggregations += migrate(
+                    self.source_solr_base_url,
+                    self.target_solr_base_url,
+                    CORE_AGGREGATIONS,
+                    query='dataset_id:%s' % source_dataset_id,
+                    commit=True, optimize=False)
+
         # synchronize target Solr <-- source Solr
-        # must delete datasets that do NOT exist at the source
+        # must delete datasets that do NOT longer exist at the source
         for target_dataset_id in target_dataset_ids.keys():
-            if not target_dataset_id in source_dataset_ids:
-                # check wether dataset still exists at the source: if yes, it will be updated; if not, must delete
-                exists = self._check_record(self.source_solr_base_url, CORE_DATASETS, target_dataset_id)
+            if target_dataset_id not in source_dataset_ids:
+                # check whether dataset still exists at the source: if yes,
+                # it will be updated; if not, must delete
+                exists = self._check_record(
+                    self.source_solr_base_url,
+                    CORE_DATASETS,
+                    target_dataset_id)
                 if not exists:
-                    logging.info("\t\t\t\tDeleting dataset=%s" % target_dataset_id)
-                    self._delete_solr_records(self.target_solr_base_url, core=CORE_DATASETS, query='id:%s' % target_dataset_id)
-                    self._delete_solr_records(self.target_solr_base_url, core=CORE_FILES, query='dataset_id:%s' % target_dataset_id)
-                    self._delete_solr_records(self.target_solr_base_url, core=CORE_AGGREGATIONS, query='dataset_id:%s' % target_dataset_id)
-                    
+                    logging.info("\t\t\t\tDeleting dataset="
+                                 "%s" % target_dataset_id)
+                    self._delete_solr_records(
+                        self.target_solr_base_url,
+                        core=CORE_DATASETS,
+                        query='id:%s' % target_dataset_id)
+                    self._delete_solr_records(
+                        self.target_solr_base_url,
+                        core=CORE_FILES,
+                        query='dataset_id:%s' % target_dataset_id)
+                    self._delete_solr_records(
+                        self.target_solr_base_url,
+                        core=CORE_AGGREGATIONS,
+                        query='dataset_id:%s' % target_dataset_id)
+
         return (numDatasets, numFiles, numAggregations)
-    
-    def _check_record(self, solr_base_url, core, id):
-        '''Check for the existence of a record with a given id.'''
-        
-        solr_url = solr_base_url +"/" + core
+
+    def _check_record(self, solr_base_url, core, record_id):
+        '''Checks for the existence of a record with a given id.'''
+
+        solr_url = solr_base_url + "/" + core
         solr_server = solr.Solr(solr_url)
-        query = "id:%s" % id
+        query = "id:%s" % record_id
         response = solr_server.select(query)
         solr_server.close()
         if response.numFound > 0:
@@ -418,70 +449,80 @@ class Synchronizer(object):
             return False
 
     def _sync_records_by_time(self, core, query, timestamp_query):
-        '''Method that executes synchronization of all records for a given core within given time interval.'''
-        
+        '''
+        Method that executes synchronization of all records
+        for a given core within given time interval.
+        '''
+
         # first delete all records in timestamp bin from target solr
         # will NOT commit the changes yet
         delete_query = "(%s)AND(%s)" % (query, timestamp_query)
-        self._delete_solr_records(self.target_solr_base_url, core, delete_query)
-        
+        self._delete_solr_records(self.target_solr_base_url,
+                                  core,
+                                  delete_query)
+
         # then migrate records from source solr
         # commit but do NOT optimize the index yet
-        numRecords = migrate(self.source_solr_base_url, self.target_solr_base_url, core, query=query, fq=timestamp_query,
+        numRecords = migrate(self.source_solr_base_url,
+                             self.target_solr_base_url,
+                             core, query=query, fq=timestamp_query,
                              commit=True, optimize=False)
         logging.info("\t\t\tNumber or records migrated=%s" % numRecords)
         return numRecords
 
+    def _delete_solr_records(self, solr_base_url, core=None,
+                             query=DEFAULT_QUERY):
 
-    def _delete_solr_records(self, solr_base_url, core=None, query=DEFAULT_QUERY):
-        
-        solr_url = (solr_base_url +"/" + core if core is not None else solr_base_url)
+        solr_url = (
+            solr_base_url + "/" + core if core is not None else solr_base_url)
         solr_server = solr.Solr(solr_url)
         solr_server.delete_query(query)
         solr_server.close()
-     
-     
+
     def _query_dataset_ids(self, solr_base_url, core, query, timestamp_query):
-        '''Method to query for dataset ids within a given datetime interval.'''
-        
+        '''
+        Method to query for dataset ids within a given datetime interval.
+        '''
+
         datasets = {}
-        solr_url = solr_base_url +"/" + core
-        
+        solr_url = solr_base_url + "/" + core
+
         # send request
-        params = { "q": query,
-                   "fq": timestamp_query,
-                   "wt":"json",
-                   "indent":"true",
-                   "start":"0",
-                   "rows":"%s" % MAX_DATASETS_PER_HOUR,
-                   "fl": ["id", "_timestamp"]
+        params = {"q": query,
+                  "fq": timestamp_query,
+                  "wt": "json",
+                  "indent": "true",
+                  "start": "0",
+                  "rows": "%s" % MAX_DATASETS_PER_HOUR,
+                  "fl": ["id", "_timestamp"]
                   }
-        url = solr_url+"/select?"+urllib.urlencode(params, doseq=True)
+        url = solr_url + "/select?" + urllib.parse.urlencode(params,
+                                                             doseq=True)
         logging.debug("Solr request: %s" % url)
-        fh = urllib2.urlopen( url )
+        fh = urllib.request.urlopen(url)
         jdoc = fh.read().decode("UTF-8")
         response = json.loads(jdoc)
         if int(response['response']['numFound']) > 0:
             for doc in response['response']['docs']:
                 datasets[doc['id']] = doc['_timestamp']
-        
+
         return datasets
-        
+
     def _optimize_solr(self, solr_base_url):
-        
+
         for core in CORES:
-        
-            solr_url = solr_base_url +"/" + core
+
+            solr_url = solr_base_url + "/" + core
             logging.info("Optimizing Solr index: %s" % solr_url)
             solr_server = solr.Solr(solr_url)
             solr_server.optimize()
             solr_server.close()
-            
+
     def _commit_solr(self, solr_base_url):
-        
+
         for core in CORES:
-        
-            solr_url = solr_base_url +"/" + core
+
+            solr_url = solr_base_url + "/" + core
             logging.info("Committing to Solr index: %s" % solr_url)
             solr_server = solr.Solr(solr_url)
             solr_server.commit()
