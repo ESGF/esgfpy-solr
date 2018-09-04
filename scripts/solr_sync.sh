@@ -2,7 +2,7 @@
 
 # Script to sync all records from a remote Solr server to a local Solr server.
 # Example invocation:
-# ./solr_sync.sh http://esgdata.gfdl.noaa.gov/solr http://localhost:8983/solr
+# ./solr_sync.sh https://esgf-node.jpl.nasa.gov/solr http://localhost:8983/solr
 
 set -e
 
@@ -17,4 +17,4 @@ SOURCE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PARENT_DIR="$(dirname $SOURCE_DIR)"
 cd $PARENT_DIR
 
-python esgfpy/harvest/harvester.py "${solr_source_url}" "${solr_target_url}" --query=index_node:${index_node}
+python esgfpy/migrate/synchronizer.py "${solr_source_url}" "${solr_target_url}" --query=index_node:${index_node}

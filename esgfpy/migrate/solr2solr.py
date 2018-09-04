@@ -14,7 +14,7 @@ MAX_RECORDS_PER_REQUEST = 100
 MAX_RECORDS_TOTAL = 9999999
 DEFAULT_QUERY = '*:*'
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 def migrate(sourceSolrUrl, targetSolrUrl,
