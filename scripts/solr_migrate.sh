@@ -2,7 +2,7 @@
 
 # Script to migrate all records from a remote Solr server to a local Solr server.
 # Example invocation:
-# ./solr_migrate.sh http://esgdata.gfdl.noaa.gov/solr http://localhost:8983/solr datasets files aggregations
+# ./solr_migrate.sh https://esgf-node.jpl.nasa.gov/solr http://localhost:8983/solr datasets files aggregations
 
 set -e
 
@@ -29,7 +29,7 @@ cd $PARENT_DIR
 for collection in $collections
 do
   url="${solr_source_url}/${collection}"'/select/?q=*:*&wt=json&rows=0'
-  numTotal=`curl -s "$url" | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["response"]["numFound"]'`
+  numTotal=`curl -s "$url" | python -c 'import json,sys;obj=json.load(sys.stdin);print(obj["response"]["numFound"])'`
   echo ""
   echo "Migrating collection=${collection} total number of records=$numTotal"
   
