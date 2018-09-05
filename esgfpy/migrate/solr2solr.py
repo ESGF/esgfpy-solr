@@ -78,22 +78,22 @@ def migrate(sourceSolrUrl, targetSolrUrl,
 
     # optimize the full index (optimize=True implies commit=True)
     if optimize:
-        logging.info("Optimizing the index...")
+        logging.debug("Optimizing the index...")
         s2.optimize()
-        logging.info("...done")
+        logging.debug("...done")
     # just commit the changes but do not optimize
     elif commit:
-        logging.info("Committing changes to the index...")
+        logging.debug("Committing changes to the index...")
         s2.commit()
-        logging.info("...done")
+        logging.debug("...done")
 
     # close connections
     s1.close()
     s2.close()
 
     t2 = datetime.datetime.now()
-    logging.debug("Total number of records migrated: %s" % numRecords)
-    logging.debug("Total elapsed time: %s" % (t2-t1))
+    logging.info("Total number of records migrated: %s" % numRecords)
+    logging.info("Total elapsed time: %s" % (t2-t1))
 
     return numRecords
 
@@ -106,8 +106,8 @@ def _migrate(s1, s2, query, fq, core, start, howManyMax, replacements, suffix,
     have been migrated, but does NOT optimize the index.
     '''
 
-    logging.debug("Request: start record=%s max records per request="
-                  "%s" % (start, howManyMax))
+    logging.info("Migrating records: start record=%s max records per request="
+                 "%s" % (start, howManyMax))
 
     # query records from source Solr
     fquery = []
@@ -118,7 +118,7 @@ def _migrate(s1, s2, query, fq, core, start, howManyMax, replacements, suffix,
     response = s1.select(query, start=start, rows=howManyMax, fq=fquery)
     _numFound = response.numFound
     _numRecords = len(response.results)
-    logging.debug("Query returned numFound=%s" % _numFound)
+    logging.info("Query returned numFound=%s" % _numFound)
 
     # post records to target Solr
     for result in response.results:
@@ -160,12 +160,12 @@ def _migrate(s1, s2, query, fq, core, start, howManyMax, replacements, suffix,
                     except ValueError:
                         result[field] = 0.
 
-    logging.info("Adding %s results..." % len(response.results))
+    logging.debug("Adding %s results..." % len(response.results))
     s2.add_many(response.results, commit=commit)
-    logging.info("...done adding")
+    logging.debug("...done adding")
 
-    logging.debug("Response: current number of records=%s total number of "
-                  "records=%s" % (start+_numRecords, _numFound))
+    logging.info("Response: current number of records=%s total number of "
+                 "records=%s" % (start+_numRecords, _numFound))
     return (_numFound, _numRecords)
 
 
