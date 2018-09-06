@@ -109,16 +109,17 @@ def check_replicas(project,
                 # master_id2 = doc2['master_id']
                 dataset_id2 = doc2['id']
 
-                # remote primary has newer version --> local replica must be updated
+                # remote primary has newer version -->
+                # local replica must be updated
                 if v1 > v2:
                     logging.warn("\t\tFound newer version: %s for dataset: %s "
                                  "at site: %s" % (
                                      v2, master_id, remote_slave_solr_url))
                     logging.warn("\t\tUpdating status of local dataset: %s to "
-                                 "latest=false" % dataset_id2 )
+                                 "latest=false" % dataset_id2)
 
                     # FIXME
-                    # 3) set latest flag of local replica to false 
+                    # 3) set latest flag of local replica to false
                     # for datasets, files, aggregations
                     if not dry_run:
                         update_dict = {'id:%s' % dataset_id2: {
