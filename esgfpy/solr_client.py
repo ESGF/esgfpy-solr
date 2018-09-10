@@ -1,27 +1,54 @@
 import json
-import urllib
+import urllib.parse
+import urllib.request
 import logging
 
 
 class SolrClient(object):
+    '''
+    Class to issue query and post requests to a remote Solr server.
+    '''
 
     def __init__(self, solr_base_url='http://localhost:8983/solr'):
         self._solr_base_url = solr_base_url
 
+    def query(self, solr_core, query, start, rows, fq):
+        '''
+        Method to execute a generic Solr query, return all fields.
+        '''
+
+        solr_core_url = self._solr_base_url + "/" + solr_core
+
+        # send request
+        params = {"q": query,
+                  "fq": fq,
+                  "wt": "json",
+                  "indent": "true",
+                  "start": "%s" % start,
+                  "rows": "%s" % rows
+                  }
+        url = solr_core_url + "/select?" + urllib.parse.urlencode(
+            params, doseq=True)
+        logging.debug("Solr request: %s" % url)
+        fh = urllib.request.urlopen(url)
+        jdoc = fh.read().decode("UTF-8")
+        jobj = json.loads(jdoc)
+        print(jobj)
+        return jobj['response']
+
     def post(self, metadata, solr_core):
 
-        print("POSTING METADATA=%s" % metadata)
         json_data_str = self._to_json(metadata)
         self._post_json(json_data_str, solr_core)
 
-    def _to_json(self, data):
+    def _to_json(self, data, indent=0):
         '''
         Converts a Python dictionary or list to json format
         (with unicode encoding).
         '''
         datastr = json.dumps(
             data,
-            indent=4,
+            indent=indent,
             sort_keys=True,
             separators=(',', ': '),
             ensure_ascii=False

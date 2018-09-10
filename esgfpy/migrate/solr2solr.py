@@ -32,8 +32,8 @@ def migrate(sourceSolrUrl, targetSolrUrl,
     '''
 
     # Solr cores
-    surl = (sourceSolrUrl + "/" + core if core is not None else sourceSolrUrl)
-    turl = (targetSolrUrl + "/" + core if core is not None else targetSolrUrl)
+    # surl = (sourceSolrUrl + "/" + core if core is not None else sourceSolrUrl)
+    # turl = (targetSolrUrl + "/" + core if core is not None else targetSolrUrl)
 
     replacements = {}
     if replace is not None and len(replace) > 0:
@@ -45,9 +45,9 @@ def migrate(sourceSolrUrl, targetSolrUrl,
                           "%s --> %s" % (oldValue, newValue))
     t1 = datetime.datetime.now()
 
-    # Solr servers
-    #s1 = solr.Solr(surl)
-    #s2 = solr.Solr(turl)
+    # Solr clients
+    s1 = SolrClient(sourceSolrUrl)
+    s2 = SolrClient(targetSolrUrl)
 
     # number of records migrated so far <= maxRecords
     numRecords = 0
@@ -58,7 +58,7 @@ def migrate(sourceSolrUrl, targetSolrUrl,
         try:
             # do NOT migrate more records than this number
             _maxRecords = min(maxRecords-numRecords, MAX_RECORDS_PER_REQUEST)
-            (_numFound, _numRecords) = _migrate(surl, turl, query, fq,
+            (_numFound, _numRecords) = _migrate(s1, s2, core, query, fq,
                                                 start, _maxRecords,
                                                 replacements, suffix,
                                                 commit=commit)
@@ -71,7 +71,7 @@ def migrate(sourceSolrUrl, targetSolrUrl,
             for i in range(MAX_RECORDS_PER_REQUEST):
                 if start < numFound and numRecords < maxRecords:
                     #try:
-                    (_numFound, _numRecords) = _migrate(surl, turl, query, fq,
+                    (_numFound, _numRecords) = _migrate(s1, s2, core, query, fq,
                                                         start, 1,
                                                         replacements,
                                                         suffix)
@@ -102,7 +102,7 @@ def migrate(sourceSolrUrl, targetSolrUrl,
     return numRecords
 
 
-def _migrate(surl, turl, query, fq, start, howManyMax, replacements, suffix,
+def _migrate(s1, s2, core, query, fq, start, howManyMax, replacements, suffix, 
              commit=True):
     '''
     Migrates 'howManyMax' records starting at 'start'.
@@ -121,7 +121,7 @@ def _migrate(surl, turl, query, fq, start, howManyMax, replacements, suffix,
                  "fq=%s" % (query, start, howManyMax, fquery))
     #response = s1.select(query, start=start, rows=howManyMax, fq=fquery)
     
-    response = _query_solr(surl, query, start=start, rows=howManyMax, fq=fquery)
+    response = s1.query(core, query, start=start, rows=howManyMax, fq=fquery)
     
     _numFound = response['numFound']
     _numRecords = len(response['docs'])
@@ -158,7 +158,7 @@ def _migrate(surl, turl, query, fq, start, howManyMax, replacements, suffix,
                     result[key] = _replaceValue(value, replacements)
 
         # Fix broken dataset records
-        if 'datasets' in surl:
+        if core == 'datasets':
             for field in ['height_bottom', 'height_top']:
                 value = result.get(field, None)
                 if value:
@@ -171,8 +171,7 @@ def _migrate(surl, turl, query, fq, start, howManyMax, replacements, suffix,
     #s2.add_many(response.results, commit=commit)
     #_solr_post_record(turl, response['docs'][0], commit=commit)
     
-    solr_client = SolrClient("http://localhost:8983/solr")
-    solr_client.post(response['docs'], "datasets")
+    s2.post(response['docs'], "datasets")
     
     logging.debug("...done adding")
 
@@ -218,27 +217,7 @@ def _replaceValue(value, replacements):
     return value
 
 
-def _query_solr(solr_url, query, start, rows, fq):
-    '''
-    Method to execute a generic Solr query, return all fields.
-    '''
 
-    # send request
-    params = {"q": query,
-              "fq": fq,
-              "wt": "json",
-              "indent": "true",
-              "start": "%s" % start,
-              "rows": "%s" % rows
-              }
-    url = solr_url + "/select?" + urllib.parse.urlencode(params,
-                                                         doseq=True)
-    logging.debug("Solr request: %s" % url)
-    fh = urllib.request.urlopen(url)
-    jdoc = fh.read().decode("UTF-8")
-    jobj = json.loads(jdoc)
-    print(jobj)
-    return jobj['response']
 
 
 if __name__ == '__main__':
