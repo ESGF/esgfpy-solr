@@ -31,7 +31,7 @@ class SolrClient(object):
         return jdoc['response']
 
     def _get_url(self, url):
-        logging.debug("Solr request: %s" % url)
+        logging.info("Solr request: %s" % url)
         fh = urllib.request.urlopen(url)
         jdoc = fh.read().decode("UTF-8")
         jobj = json.loads(jdoc)
@@ -53,11 +53,12 @@ class SolrClient(object):
             self._solr_base_url, solr_core)
         return self._get_url(url)
 
-    def _to_json(self, data, indent=0):
+    def _to_json(self, data, indent=2):
         '''
         Converts a Python dictionary or list to json format
         (with unicode encoding).
         '''
+
         datastr = json.dumps(
             data,
             indent=indent,
@@ -65,6 +66,7 @@ class SolrClient(object):
             separators=(',', ': '),
             ensure_ascii=False
         )
+        logging.debug("JSON data string before encoding: %s" % datastr)
         return datastr.encode('utf8')
 
     def _post_json(self, json_data_str, solr_core):
@@ -74,6 +76,6 @@ class SolrClient(object):
         req = urllib.request.Request(url)
         logging.info("Solr update url=%s" % url)
         req.add_header('Content-Type', 'application/json')
-        logging.info("Publishing JSON data: %s" % json_data_str)
+        logging.debug("Publishing JSON data: %s" % json_data_str)
         response = urllib.request.urlopen(req, json_data_str)
         return response

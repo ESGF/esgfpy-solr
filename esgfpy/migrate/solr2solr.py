@@ -156,7 +156,7 @@ def _migrate(s1, s2, core, query, fq, start, howManyMax, replacements, suffix,
 
     logging.debug("Adding %s results..." % len(response['docs']))
     # post all records at once
-    s2.post(response['docs'], "datasets")
+    s2.post(response['docs'], core)
     logging.debug("...done adding")
 
     logging.info("Response: current number of records=%s total number of "
