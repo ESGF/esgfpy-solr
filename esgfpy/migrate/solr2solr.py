@@ -5,9 +5,7 @@ from a source Solr to a target Solr.
 
 import argparse
 import datetime
-import json
 import logging
-import urllib
 
 from esgfpy.solr_client import SolrClient
 
@@ -21,8 +19,8 @@ DEFAULT_QUERY = '*:*'
 logging.basicConfig(level=logging.INFO)
 
 
-def migrate(sourceSolrUrl, targetSolrUrl,
-            core=None, query=DEFAULT_QUERY, fq=None,
+def migrate(sourceSolrUrl, targetSolrUrl, core,
+            query=DEFAULT_QUERY, fq=None,
             start=0, maxRecords=MAX_RECORDS_TOTAL,
             replace=None, suffix='', commit=True, optimize=True):
     '''
@@ -30,10 +28,6 @@ def migrate(sourceSolrUrl, targetSolrUrl,
     when all records have been migrated, but note that these client directives
     will be disregarded by an ESGF SolrCloud cluster.
     '''
-
-    # Solr cores
-    # surl = (sourceSolrUrl + "/" + core if core is not None else sourceSolrUrl)
-    # turl = (targetSolrUrl + "/" + core if core is not None else targetSolrUrl)
 
     replacements = {}
     if replace is not None and len(replace) > 0:
@@ -70,30 +64,26 @@ def migrate(sourceSolrUrl, targetSolrUrl,
         except Exception:
             for i in range(MAX_RECORDS_PER_REQUEST):
                 if start < numFound and numRecords < maxRecords:
-                    #try:
-                    (_numFound, _numRecords) = _migrate(s1, s2, core, query, fq,
-                                                        start, 1,
-                                                        replacements,
-                                                        suffix)
-                    #except Exception as e:
-                    #    logging.warn('ERROR migrating record %s: %s' % (i, e))
+                    try:
+                        (_numFound, _numRecords) = _migrate(
+                            s1, s2, core, query, fq, start, 1,
+                            replacements, suffix)
+                    except Exception as e:
+                        logging.warn('ERROR migrating record %s: %s' % (i, e))
                     start += 1
                     numRecords += 1
 
     # optimize the full index (optimize=True implies commit=True)
-    #if optimize:
-    #    logging.debug("Optimizing the index...")
-    #    s2.optimize()
-    #    logging.debug("...done")
-    # just commit the changes but do not optimize
-    #elif commit:
-    #    logging.debug("Committing changes to the index...")
-    #    s2.commit()
-    #    logging.debug("...done")
+    if optimize:
+        logging.debug("Optimizing the index for core=%s ..." % core)
+        s2.optimize(core)
+        logging.debug("...done")
 
-    # close connections
-    #s1.close()
-    #s2.close()
+    # just commit the changes but do not optimize
+    elif commit:
+        logging.debug("Committing changes to the index for core=%s ..." % core)
+        s2.commit(core)
+        logging.debug("...done")
 
     t2 = datetime.datetime.now()
     logging.info("Total number of records migrated: %s" % numRecords)
@@ -102,7 +92,7 @@ def migrate(sourceSolrUrl, targetSolrUrl,
     return numRecords
 
 
-def _migrate(s1, s2, core, query, fq, start, howManyMax, replacements, suffix, 
+def _migrate(s1, s2, core, query, fq, start, howManyMax, replacements, suffix,
              commit=True):
     '''
     Migrates 'howManyMax' records starting at 'start'.
@@ -119,17 +109,14 @@ def _migrate(s1, s2, core, query, fq, start, howManyMax, replacements, suffix,
         fquery = [fq]
     logging.info("Querying: query=%s start=%s rows=%s "
                  "fq=%s" % (query, start, howManyMax, fquery))
-    #response = s1.select(query, start=start, rows=howManyMax, fq=fquery)
-    
     response = s1.query(core, query, start=start, rows=howManyMax, fq=fquery)
-    
     _numFound = response['numFound']
     _numRecords = len(response['docs'])
-    logging.info("Query returned numFound=%s numRecords=%s" % (_numFound, _numRecords))
+    logging.info("Query returned numFound=%s numRecords=%s" % (
+        _numFound, _numRecords))
 
     # post records to target Solr
     for result in response['docs']:
-
 
         # remove "_version_" field otherwise Solr will return
         # an HTTP 409 error (Conflict)
@@ -168,43 +155,13 @@ def _migrate(s1, s2, core, query, fq, start, howManyMax, replacements, suffix,
                         result[field] = 0.
 
     logging.debug("Adding %s results..." % len(response['docs']))
-    #s2.add_many(response.results, commit=commit)
-    #_solr_post_record(turl, response['docs'][0], commit=commit)
-    
+    # post all records at once
     s2.post(response['docs'], "datasets")
-    
     logging.debug("...done adding")
 
     logging.info("Response: current number of records=%s total number of "
                  "records=%s" % (start+_numRecords, _numFound))
     return (_numFound, _numRecords)
-
-
-def _solr_post_record(solr_url, record, commit=False):
-    
-    logging.info("\nPosting record=%s" % record)
-    
-    headers = {}
-    headers['Content-Type'] = 'application/json'
-
-    # FIXME
-    params = {"commit": "false"} 
-    url = solr_url + "/update?" + urllib.parse.urlencode(params,
-                                                         doseq=True)
-    payload = json.dumps(record)
-    
-    payload = urllib.parse.urlencode(payload).encode('UTF-8')
-    
-    # POST request encoded data
-    #logging.info("record type=%s" % type(record))
-    #post_data = urllib.parse.urlencode(record).encode('UTF-8')
-    #logging.info("post_data type=%s" % type(post_data))
-    
-    # Automatically calls POST method because request has data
-    logging.info("Solr POST request: url=%s data=%s" % (url, payload))
-    post_response = urllib.request.urlopen(url=url, data=payload)
-
-    print(post_response.read())
 
 
 def _replaceValue(value, replacements):
@@ -215,9 +172,6 @@ def _replaceValue(value, replacements):
             value = value.replace(oldValue, newValue)
 
     return value
-
-
-
 
 
 if __name__ == '__main__':

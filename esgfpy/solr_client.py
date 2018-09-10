@@ -13,9 +13,7 @@ class SolrClient(object):
         self._solr_base_url = solr_base_url
 
     def query(self, solr_core, query, start, rows, fq):
-        '''
-        Method to execute a generic Solr query, return all fields.
-        '''
+        '''Method to execute a generic Solr query, return all fields.'''
 
         solr_core_url = self._solr_base_url + "/" + solr_core
 
@@ -29,17 +27,31 @@ class SolrClient(object):
                   }
         url = solr_core_url + "/select?" + urllib.parse.urlencode(
             params, doseq=True)
+        jdoc = self._get_url(url)
+        return jdoc['response']
+
+    def _get_url(self, url):
         logging.debug("Solr request: %s" % url)
         fh = urllib.request.urlopen(url)
         jdoc = fh.read().decode("UTF-8")
         jobj = json.loads(jdoc)
-        print(jobj)
-        return jobj['response']
+        return jobj
 
     def post(self, metadata, solr_core):
 
         json_data_str = self._to_json(metadata)
         self._post_json(json_data_str, solr_core)
+
+    def commit(self, solr_core):
+        url = "%s/%s/update?commit=true" % (
+            self._solr_base_url, solr_core)
+        return self._get_url(url)
+
+    def optimize(self, solr_core):
+
+        url = "%s/%s/update?optimize=true" % (
+            self._solr_base_url, solr_core)
+        return self._get_url(url)
 
     def _to_json(self, data, indent=0):
         '''
@@ -57,13 +69,11 @@ class SolrClient(object):
 
     def _post_json(self, json_data_str, solr_core):
 
-        req = urllib.request.Request(self._get_solr_post_url(solr_core))
-        logging.info("Solr update url=%s" % self._get_solr_post_url(solr_core))
+        url = "%s/%s/update?commit=true" % (
+            self._solr_base_url, solr_core)
+        req = urllib.request.Request(url)
+        logging.info("Solr update url=%s" % url)
         req.add_header('Content-Type', 'application/json')
         logging.info("Publishing JSON data: %s" % json_data_str)
         response = urllib.request.urlopen(req, json_data_str)
         return response
-
-    def _get_solr_post_url(self, solr_core):
-        return "%s/%s/update?commit=true" % (
-            self._solr_base_url, solr_core)
