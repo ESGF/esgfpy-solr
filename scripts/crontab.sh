@@ -6,7 +6,9 @@
 export CDAT_HOME=/usr/local/conda
 source ${CDAT_HOME}/bin/activate esgf-pub
 
-SOURCE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# SOURCE_DIR is parent dir of the 'scripts' dir containing this script (after resolving any symlink e.g. from cron.weekly)
+script=${BASH_SOURCE[0]}
+SOURCE_DIR=$(python -c "import os.path as P; print P.dirname(P.dirname(P.realpath('$script')))")
 export PYTHONPATH=${SOURCE_DIR}
 
 logfile=/esg/log/check_replicas_cron.log
