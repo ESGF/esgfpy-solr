@@ -7,7 +7,7 @@ import argparse
 import datetime
 import logging
 
-from esgfpy.solr_client import SolrClient
+from esgfpy.migrate.solr_client import SolrClient
 
 
 MAX_RECORDS_PER_REQUEST = 100

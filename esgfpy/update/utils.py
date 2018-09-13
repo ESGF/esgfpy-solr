@@ -169,7 +169,7 @@ def _buildSolrXml(solr_core_url, queries, fieldDict, update='set', start=0):
     for query in queries:
         params.append(('fq', query))
     # retrieve optional fields for replacement: {'rcm_name':['$experiment'] }
-    for fkey, fvals in fieldDict.items():
+    for _, fvals in fieldDict.items():
         if fvals is not None:
             for fval in fvals:
                 if fval[0] == '$':
@@ -222,7 +222,8 @@ def _buildSolrXml(solr_core_url, queries, fieldDict, update='set', start=0):
                                     # <field name="xlink" update="set">
                                     # https://earthsystemcog.org/.../taTechNote
                                     # _AIRS_L3_RetStd-v5_200209-201105.pdf|AIRS
-                                    #  Air Temperature Technical Note|technote</field>
+                                    #  Air Temperature Technical Note|technote
+                                    # </field>
                                     el = SubElement(docEl, "field", attrib={
                                         "name": fieldName, 'update': update})
                                     el.text = _fieldValue
@@ -266,7 +267,7 @@ def _sendSolrXml(solr_core_url, xmlDoc):
 
     # send XML document
     r = Request(url, data=xmlDoc,
-                               headers={'Content-Type': 'application/xml'})
+                headers={'Content-Type': 'application/xml'})
     u = urlopen(r)
     response = u.read()
     logging.debug(response)
