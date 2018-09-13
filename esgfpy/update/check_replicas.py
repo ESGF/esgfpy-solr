@@ -12,9 +12,9 @@ logging.basicConfig(level=logging.INFO)
 
 # URLs
 # local master Solr that will be checked and updated
-# local_master_solr_url = 'http://localhost:8984/solr'
+local_master_solr_url = 'http://localhost:8984/solr'
 # FIXME
-local_master_solr_url = 'https://localhost:8983/solr'
+#local_master_solr_url = 'http://localhost:8983/solr'
 
 # any ESGF index node used to retrieve the full list
 # of the index nodes in the federation
