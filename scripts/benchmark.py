@@ -3,15 +3,11 @@ Script to benchmark Solr query performance
 '''
 
 import logging
-import ssl
 import json
 from urllib.request import urlopen
 from urllib.parse import urlencode
 
 logging.basicConfig(level=logging.INFO)
-
-# NOTE: PROTOCOL_TLSv1_2 support requires Python 2.7.13+
-ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 
 
 class SolrEndpoint():
@@ -28,48 +24,151 @@ class SolrEndpoint():
         else:
             self.shards = []
 
-SOLR_ENDPOINTS = [SolrEndpoint("AWS", 
-                                "http://a49158e4fb14f11e88f5e02bc8106d18-263704447.us-west-2.elb.amazonaws.com/solr",
-                                ""),
-                    #SolrEndpoint("GCP",
-                    #             "http://35.193.32.14/solr",
-                    #             ""),
+
+SOLR_ENDPOINTS = [
+                    SolrEndpoint("AWS",
+                                 "http://a49158e4fb14f11e88f5e02bc8106d18-263704447"
+                                 ".us-west-2.elb.amazonaws.com/solr",
+                                 ""),
+                    SolrEndpoint("GCP",
+                                 "http://35.193.32.14/solr",
+                                 ""),
                     SolrEndpoint("LLNL",
                                  "http://esgf-node.llnl.gov/solr",
-                                 "localhost:8983/solr,localhost:8985/solr,localhost:8987/solr,localhost:8988/solr,localhost:8990/solr,localhost:8991/solr,localhost:8992/solr,localhost:8993/solr,localhost:8994/solr,localhost:8995/solr,localhost:8996/solr"),
+                                 "localhost:8983/solr,"
+                                 "localhost:8985/solr,"
+                                 "localhost:8987/solr,"
+                                 "localhost:8988/solr,"
+                                 "localhost:8990/solr,"
+                                 "localhost:8991/solr,"
+                                 "localhost:8992/solr,"
+                                 "localhost:8993/solr,"
+                                 "localhost:8994/solr,"
+                                 "localhost:8995/solr,"
+                                 "localhost:8996/solr"),
                     SolrEndpoint('IPSL',
                                  'https://esgf-node.ipsl.upmc.fr/solr',
-                                 'localhost:8982/solr,esgf-node.jpl.nasa.gov/solr,esgf-node.llnl.gov/solr,esgdata.gfdl.noaa.gov/solr,esgf.nccs.nasa.gov/solr,esgf.nci.org.au/solr,esgf-data.dkrz.de/solr,esgf-node.ipsl.upmc.fr/solr,esg-dn1.nsc.liu.se/solr,esgf-index1.ceda.ac.uk/solr,esgf-index3.ceda.ac.uk/solr,esg.pik-potsdam.de/solr')
+                                 "localhost:8982/solr,"
+                                 "esgf-node.jpl.nasa.gov/solr,"
+                                 "esgf-node.llnl.gov/solr,"
+                                 "esgdata.gfdl.noaa.gov/solr,"
+                                 "esgf.nccs.nasa.gov/solr,"
+                                 "esgf.nci.org.au/solr,"
+                                 "esgf-data.dkrz.de/solr,"
+                                 "esgf-node.ipsl.upmc.fr/solr,"
+                                 "esg-dn1.nsc.liu.se/solr,"
+                                 "esgf-index1.ceda.ac.uk/solr,"
+                                 "esgf-index3.ceda.ac.uk/solr,"
+                                 "esg.pik-potsdam.de/solr"),
+                    SolrEndpoint('CEDA',
+                                 'https://esgf-index1.ceda.ac.uk/solr',
+                                 "esgf-index2.ceda.ac.uk:8997/solr,"
+                                 "esgf-index2.ceda.ac.uk:8998/solr,"
+                                 "esgf-index2.ceda.ac.uk:9001/solr,"
+                                 "esgf-index2.ceda.ac.uk:9003/solr,"
+                                 "esgf-index2.ceda.ac.uk:8996/solr,"
+                                 "esgf-index2.ceda.ac.uk:8999/solr,"
+                                 "esgf-index2.ceda.ac.uk:9000/solr,"
+                                 "esgf-index2.ceda.ac.uk:9005/solr,"
+                                 "esgf-index2.ceda.ac.uk:9004/solr,"
+                                 "localhost:8983/solr,"
+                                 "esgf-index3.ceda.ac.uk:8983/solr"),
+                    SolrEndpoint('DKRZ',
+                                 "https://esgf-data.dkrz.de/solr",
+                                 "localhost:8983/solr,"
+                                 "localhost:8982/solr,"
+                                 "localhost:8986/solr,"
+                                 "localhost:8987/solr,"
+                                 "localhost:8988/solr,"
+                                 "localhost:8989/solr,"
+                                 "localhost:8990/solr,"
+                                 "localhost:8993/solr,"
+                                 "localhost:8994/solr,"
+                                 "localhost:8995/solr,"
+                                 "localhost:8997/solr,"
+                                 "esgdata.gfdl.noaa.gov/solr,"
+                                 "localhost:8998/solr"),
+                    SolrEndpoint('JPL',
+                                 'https://esgf-node.jpl.nasa.gov/solr',
+                                 "localhost/solr,"
+                                 "localhost:8982/solr,"
+                                 "localhost:8990/solr,"
+                                 "localhost:8985/solr,"
+                                 "localhost:8991/solr,"
+                                 "localhost:8993/solr,"
+                                 "localhost:8986/solr,"
+                                 "localhost:8987/solr,"
+                                 "localhost:8988/solr,"
+                                 "esgf-index1.ceda.ac.uk/solr,"
+                                 "localhost:8995/solr,"
+                                 "localhost:8994/solr")
                     ]
+SOLR_ENDPOINTS = [
+                    SolrEndpoint("GCP",
+                                 "http://35.193.32.14/solr",
+                                 ""),
+                    ]
+CORE = "datasets"
 
-#FILE_QUERIES = ["indent=true&q=*%3A*&fq=type%3AFile&facet=true&start=0&rows=10&wt=json"]
+QUERIES = [{"fq": "type:Dataset"},
+           {"fq": ["project:CMIP5", "experiment:rcp60",
+                   "replica:false", "latest:true"]},
+           {"fq": ["project:CMIP5", "experiment:rcp60",
+                   "replica:false", "latest:true",
+                   "cf_standard_name:mole_concentration_of_calcite"
+                   "_expressed_as_carbon_in_sea_water",
+                   "data_node:aims3.llnl.gov", "time_frequency:yr",
+                   "institute:MIROC"]},
+           {"fq": "id:cmip5.output1.MIROC.MIROC-ESM-CHEM.rcp60."
+                  "mon.aerosol.aero.r1i1p1.v20120514|aims3.llnl.gov"},
+           {"fq": "id:*MIROC*"},
+           {"fq": ["datetime_start:[* TO 2001-12-31T23:59:59Z]",
+                   "datetime_stop:[2001-01-01T00:00:00Z TO *]"]}
+           ]
 
-QUERIES = [ {'fq':'project:CMIP5', 'fq':'variable:abs550aer', 'fq':'model:CSIRO-Mk3.6.0'} ]
+# common parameters for all queries
+COMMON_PARAMS = {'indent': ' true',
+                 'q': '{!cache=false}*:*',
+                 'facet': 'true',
+                 'start': '0',
+                 'rows': '10',
+                 'wt': 'json'}
 
-COMMON_PARAMS = {'indent':'true', 'q':'{!cache=false}*:*', 'fq':'type:File', 'facet':'true', 'start':'0', 'rows':'10', 'wt':'json'}
+OUTPUT_FILE = "/tmp/solr_benchmarking_output.txt"
+
 
 def main():
 
-    for query in QUERIES:
+    with open(OUTPUT_FILE, "w") as the_file:
+        the_file.write("\t".join([x.name for x in SOLR_ENDPOINTS])+"\n")
 
-        for solr_endpoint in SOLR_ENDPOINTS:
+        for query in QUERIES:
+            qTimes = []
 
-            params = query.copy()
-            params.update(COMMON_PARAMS)
-            url = solr_endpoint.url + "/files/select?" + urlencode(params, doseq=True)
-            if solr_endpoint.shards:
-                shards = ",".join([x+"/files" for x in solr_endpoint.shards])
-                print(shards)
-                url += "&shards=%s" % shards
-        
-            logging.info('Executing ESGF query URL=%s' % url)
-            fh = urlopen(url)
-            response = fh.read().decode("UTF-8")
-            jobj = json.loads(response)
-            logging.info("Response time=%s Number of records=%s" % (jobj['responseHeader']['QTime'], jobj['response']['numFound']))
+            for solr_endpoint in SOLR_ENDPOINTS:
 
-        
-    
+                params = query.copy()
+                params.update(COMMON_PARAMS)
+                url = solr_endpoint.url + (
+                    "/%s/select?" % CORE) + urlencode(params, doseq=True)
+                if solr_endpoint.shards:
+                    shards = ",".join(
+                        [x + ("/%s" % CORE) for x in solr_endpoint.shards])
+                    url += "&shards=%s" % shards
+
+                logging.info('Executing ESGF query URL=%s' % url)
+                fh = urlopen(url)
+                response = fh.read().decode("UTF-8")
+                jobj = json.loads(response)
+                qTime = jobj['responseHeader']['QTime']
+                numFound = jobj['response']['numFound']
+                logging.info("Response time=%s Number of records=%s" % (
+                    qTime, numFound))
+                qTimes.append(qTime)
+
+            # write out the results for this query
+            the_file.write("\t".join([str(qt) for qt in qTimes]) + "\n")
+
 
 if __name__ == '__main__':
     main()
