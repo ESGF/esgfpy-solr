@@ -30,9 +30,6 @@ SOLR_ENDPOINTS = [
                                  "http://a49158e4fb14f11e88f5e02bc8106d18-263704447"
                                  ".us-west-2.elb.amazonaws.com/solr",
                                  ""),
-                    SolrEndpoint("GCP",
-                                 "http://35.193.32.14/solr",
-                                 ""),
                     SolrEndpoint("LLNL",
                                  "http://esgf-node.llnl.gov/solr",
                                  "localhost:8983/solr,"
@@ -103,13 +100,14 @@ SOLR_ENDPOINTS = [
                                  "localhost:8995/solr,"
                                  "localhost:8994/solr")
                     ]
-SOLR_ENDPOINTS = [
-                    SolrEndpoint("GCP",
-                                 "http://35.193.32.14/solr",
-                                 ""),
-                    ]
-CORE = "datasets"
+#SOLR_ENDPOINTS = [
+#                    SolrEndpoint("GCP",
+#                                 "http://35.193.32.14/solr",
+#                                 ""),
+#                    ]
 
+# Dataset queries
+CORE = "datasets"
 QUERIES = [{"fq": "type:Dataset"},
            {"fq": ["project:CMIP5", "experiment:rcp60",
                    "replica:false", "latest:true"]},
@@ -125,6 +123,27 @@ QUERIES = [{"fq": "type:Dataset"},
            {"fq": ["datetime_start:[* TO 2001-12-31T23:59:59Z]",
                    "datetime_stop:[2001-01-01T00:00:00Z TO *]"]}
            ]
+
+# File queries
+'''
+CORE = "files"
+QUERIES = [{"fq": "type:File"},
+           {"fq": ["project:CMIP5", "experiment:decadal2001",
+                   "replica:false", "latest:true"]},
+           {"fq": ["project:CMIP5", "experiment:decadal2001",
+                   "replica:false", "latest:true",
+                   "cf_standard_name:air_temperature",
+                   "data_node:esgfcog.cccma.ec.gc.ca",
+                   "time_frequency:day",
+                   "realm:atmos"]},
+           {"fq": "id:cmip5.output.CCCma.CanCM4.decadal2001.day.atmos.r1i1p1."
+                  "v20130331.tas_day_CanCM4_decadal2001_r1i1p1_20020101-"
+                  "20111231.nc|esgfcog.cccma.ec.gc.ca"},
+           #{"fq": "id:*MIROC*"}, # NOT RETURNING FOR LLNL
+           {"fq": ["_timestamp:[* TO 2015-12-31T23:59:59Z]",
+                   "_timestamp:[2015-01-01T00:00:00Z TO *]"]}
+           ]
+'''
 
 # common parameters for all queries
 COMMON_PARAMS = {'indent': ' true',
