@@ -319,7 +319,7 @@ class Synchronizer(object):
                   "wt": "json",
                   "indent": "true",
                   "stats": "true",
-                  "stats.field": ["_timestamp"],
+                  "stats.field": ["_timestamp"], # FIXME: no list?
                   "rows": "0"}
 
         url = solr_url + "/select?" + urllib.parse.urlencode(params,
