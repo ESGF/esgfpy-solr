@@ -1,13 +1,21 @@
 '''
-Script to drive the migration of Solr records from a source Solr to a target Solr
+Script to drive the migration of Solr records
+from a source Solr to a target Solr
 '''
 
 import argparse
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from urllib.request import urlopen
 import logging
 import json
 from dateutil.parser import parse as dt_parse
+from esgfpy.migrate.utils import get_timestamp_query
+from esgfpy.migrate.solr2solr import migrate
+import time
+
+SLEEP_TIME_SECS = 120
+
+logging.basicConfig(level=logging.INFO)
 
 
 def list_months_and_years(start_month, start_year, end_month, end_year):
@@ -72,11 +80,31 @@ def get_datetime_bins(sourceSolrUrl, collection):
 
 def main(sourceSolrUrl, targetSolrUrl, collections):
 
+    # extract index node from sourceSolrUrl
+    parsed_uri = urlparse(sourceSolrUrl)
+    hostname = '{uri.netloc}'.format(uri=parsed_uri)
+    query = "index_node:%s" % hostname
+
     # loop over collection
     for collection in collections:
 
+        numRecordsMigrated = 0
         datetime_bins = get_datetime_bins(sourceSolrUrl, collection)
-        print(datetime_bins)
+
+        # loop over datetime intervals
+        for (startDateTime, stopDateTime) in datetime_bins:
+            logging.info("Migrating %s records from: %s to %s" % (
+                collection, startDateTime, stopDateTime))
+
+            fq = get_timestamp_query(startDateTime, stopDateTime)
+            _numRecordsMigrated = migrate(
+                sourceSolrUrl, targetSolrUrl, collection, query=query, fq=fq)
+            numRecordsMigrated += _numRecordsMigrated
+            if _numRecordsMigrated > 0:
+                time.sleep(SLEEP_TIME_SECS)
+
+        logging.info("Final number of %s records migrated: %s" % (
+            collection, numRecordsMigrated))
 
 
 if __name__ == '__main__':

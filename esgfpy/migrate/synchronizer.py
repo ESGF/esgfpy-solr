@@ -11,6 +11,7 @@ import dateutil.parser
 from datetime import timedelta
 from monthdelta import monthdelta
 from esgfpy.migrate.solr2solr import migrate
+from esgfpy.migrate.utils import get_timestamp_query
 
 logging.basicConfig(level=logging.INFO)
 
@@ -82,7 +83,7 @@ class Synchronizer(object):
                     datetime_start_month = datetime_stop_month - TIMEDELTA_MONTH
                     logging.info("\tMONTH check: start=%s stop=%s" % (
                         datetime_start_month, datetime_stop_month))
-                    timestamp_query_month = self._get_timestamp_query(
+                    timestamp_query_month = get_timestamp_query(
                         datetime_start_month, datetime_stop_month)
 
                     retDict = self._check_sync(core=core, query=query,
@@ -107,7 +108,7 @@ class Synchronizer(object):
                                 datetime_stop_day - TIMEDELTA_DAY)
                             logging.info("\t\tDAY check: start=%s stop=%s" % (
                                 datetime_start_day, datetime_stop_day))
-                            timestamp_query_day = self._get_timestamp_query(
+                            timestamp_query_day = get_timestamp_query(
                                 datetime_start_day, datetime_stop_day)
 
                             retDict = self._check_sync(core=core, query=query,
@@ -134,7 +135,7 @@ class Synchronizer(object):
                                                  "stop=%s" % (
                                                      datetime_start_hour,
                                                      datetime_stop_hour))
-                                    timestamp_query_hour = self._get_timestamp_query(
+                                    timestamp_query_hour = get_timestamp_query(
                                         datetime_start_hour, datetime_stop_hour)
 
                                     retDict = self._check_sync(core=core,
@@ -254,17 +255,6 @@ class Synchronizer(object):
                                             microsecond=0)
 
         return (datetime_min, datetime_max)
-
-    def _get_timestamp_query(self, datetime_start, datetime_stop):
-        '''Builds the Solr timestamp query between a start, stop datetime.'''
-
-        datetime_start_string = datetime_start.strftime(
-            '%Y-%m-%dT%H:%M:%S.%fZ')
-        datetime_stop_string = datetime_stop.strftime(
-            '%Y-%m-%dT%H:%M:%S.%fZ')
-        timestamp_query = "_timestamp:[%s TO %s]" % (datetime_start_string,
-                                                     datetime_stop_string)
-        return timestamp_query
 
     def _check_sync(self, core=None, query=DEFAULT_QUERY,
                     fq="_timestamp:[* TO *]"):
