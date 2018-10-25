@@ -57,6 +57,11 @@ class Synchronizer(object):
 
             retDict = self._check_sync(core=core, query=query)
 
+            if not retDict:
+                logging.warning("Error synchronizing core=%s, skipping it" % core)
+                # skip the rest of this iteration
+                continue
+
             if retDict['status']:
                 logging.info("Solr cores '%s' are in sync, "
                              "no further action necessary" % core)
@@ -268,8 +273,14 @@ class Synchronizer(object):
 
         [counts1, timestamp_min1, timestamp_max1, timestamp_mean1] = (
             self._query_solr_stats(self.source_solr_base_url, core, query, fq))
+        if counts1 == -1:
+            logging.warning("Error querying URL: %s" % self.source_solr_base_url)
+            return None
         [counts2, timestamp_min2, timestamp_max2, timestamp_mean2] = (
             self._query_solr_stats(self.target_solr_base_url, core, query, fq))
+        if counts2 == -1:
+            logging.warning("Error querying URL: %s" % self.target_solr_base_url)
+            return None
         logging.debug("SOURCE: counts=%s time stamp min=%s max=%s mean=%s" % (
             counts1, timestamp_min1, timestamp_max1, timestamp_mean1))
         logging.debug("TARGET: counts=%s time stamp min=%s max=%s mean=%s" % (
@@ -315,40 +326,49 @@ class Synchronizer(object):
         url = solr_url + "/select?" + urllib.parse.urlencode(params,
                                                              doseq=True)
         logging.debug("Solr request: %s" % url)
-        fh = urllib.request.urlopen(url)
-        jdoc = fh.read().decode("UTF-8")
-        response = json.loads(jdoc)
 
-        # parse response
-        # logging.debug("Solr Response: %s" % response)
-        counts = response['response']['numFound']
-        try:
-            timestamp_min = (
-                response['stats']['stats_fields']['_timestamp']['min'])
-        except KeyError:
-            timestamp_min = None
-        try:
-            timestamp_max = (
-                response['stats']['stats_fields']['_timestamp']['max'])
-        except KeyError:
-            timestamp_max = None
-        try:
-            timestamp_mean = (
-                response['stats']['stats_fields']['_timestamp']['mean'])
-        except KeyError:
-            timestamp_mean = None
+        # default values if HTTP response cannot be retrieved
+        (counts, timestamp_min, timestamp_max,
+         timestamp_mean) = (-1, None, None, None)
 
-        # convert strings into datetime objects
-        # ignore microseconds for comparison
-        if timestamp_min is not None:
-            timestamp_min = dateutil.parser.parse(timestamp_min).replace(
-                microsecond=0)
-        if timestamp_max is not None:
-            timestamp_max = dateutil.parser.parse(timestamp_max).replace(
-                microsecond=0)
-        if timestamp_mean is not None:
-            timestamp_mean = dateutil.parser.parse(timestamp_mean).replace(
-                microsecond=0)
+        try:
+            fh = urllib.request.urlopen(url)
+            jdoc = fh.read().decode("UTF-8")
+            response = json.loads(jdoc)
+
+            # parse response
+            # logging.debug("Solr Response: %s" % response)
+            counts = response['response']['numFound']
+            try:
+                timestamp_min = (
+                    response['stats']['stats_fields']['_timestamp']['min'])
+            except KeyError:
+                timestamp_min = None
+            try:
+                timestamp_max = (
+                    response['stats']['stats_fields']['_timestamp']['max'])
+            except KeyError:
+                timestamp_max = None
+            try:
+                timestamp_mean = (
+                    response['stats']['stats_fields']['_timestamp']['mean'])
+            except KeyError:
+                timestamp_mean = None
+
+            # convert strings into datetime objects
+            # ignore microseconds for comparison
+            if timestamp_min is not None:
+                timestamp_min = dateutil.parser.parse(timestamp_min).replace(
+                    microsecond=0)
+            if timestamp_max is not None:
+                timestamp_max = dateutil.parser.parse(timestamp_max).replace(
+                    microsecond=0)
+            if timestamp_mean is not None:
+                timestamp_mean = dateutil.parser.parse(timestamp_mean).replace(
+                    microsecond=0)
+
+        except urllib.error.URLError as e:
+            logging.warning(e)
 
         # return output
         return [counts, timestamp_min, timestamp_max, timestamp_mean]
