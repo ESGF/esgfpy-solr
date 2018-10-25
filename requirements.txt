@@ -1,4 +1,3 @@
-solrpy3
 dateutils
 monthdelta
 python-dateutil
