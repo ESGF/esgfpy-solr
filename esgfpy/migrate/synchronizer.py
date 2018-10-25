@@ -4,7 +4,7 @@ Python module to synchronize a source and target Sorl servers.
 
 import logging
 import argparse
-#import solr
+import sys
 import urllib
 import json
 import dateutil.parser
@@ -524,21 +524,21 @@ class Synchronizer(object):
 
         for core in CORES:
 
-            solr_url = solr_base_url + "/" + core
-            logging.info("Optimizing Solr index: %s" % solr_url)
-            solr_server = solr.Solr(solr_url)
-            solr_server.optimize()
-            solr_server.close()
+            solr_url = solr_base_url + "/" + core + "/update"
+            params = {"optimize": "true", "wt": "json"}
+            logging.info("Optimizing the Solr index: %s" % solr_url)
+            response = http_get_json(solr_url, params)
+            logging.debug(response)
 
     def _commit_solr(self, solr_base_url):
 
         for core in CORES:
 
-            solr_url = solr_base_url + "/" + core
-            logging.info("Committing to Solr index: %s" % solr_url)
-            solr_server = solr.Solr(solr_url)
-            solr_server.commit()
-            solr_server.close()
+            solr_url = solr_base_url + "/" + core + "/update"
+            params = {"commit": "true", "wt": "json"}
+            logging.info("Committing the Solr index: %s" % solr_url)
+            response = http_get_json(solr_url, params)
+            logging.debug(response)
 
 
 if __name__ == '__main__':
