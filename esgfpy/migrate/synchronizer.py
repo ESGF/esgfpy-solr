@@ -4,14 +4,16 @@ Python module to synchronize a source and target Sorl servers.
 
 import logging
 import argparse
-import solr
+#import solr
 import urllib
 import json
 import dateutil.parser
 from datetime import timedelta
 from monthdelta import monthdelta
 from esgfpy.migrate.solr2solr import migrate
-from esgfpy.migrate.utils import get_timestamp_query
+from esgfpy.migrate.utils import (
+    get_timestamp_query, http_post_json, http_get_json
+    )
 
 logging.basicConfig(level=logging.INFO)
 
@@ -451,15 +453,14 @@ class Synchronizer(object):
     def _check_record(self, solr_base_url, core, record_id):
         '''Checks for the existence of a record with a given id.'''
 
-        solr_url = solr_base_url + "/" + core
-        solr_server = solr.Solr(solr_url)
-        query = "id:%s" % record_id
-        response = solr_server.select(query)
-        solr_server.close()
-        if response.numFound > 0:
+        solr_url = solr_base_url + "/" + core + "/select"
+        response = http_get_json(solr_url, {'q': 'id:%s' % record_id, 'wt': 'json'})
+
+        if int(response["response"]['numFound']) > 0:
             return True
         else:
             return False
+
 
     def _sync_records_by_time(self, core, query, timestamp_query):
         '''
@@ -483,14 +484,12 @@ class Synchronizer(object):
         logging.info("\t\t\tNumber or records migrated=%s" % numRecords)
         return numRecords
 
-    def _delete_solr_records(self, solr_base_url, core=None,
-                             query=DEFAULT_QUERY):
+    def _delete_solr_records(self, solr_base_url, core, query=DEFAULT_QUERY):
 
-        solr_url = (
-            solr_base_url + "/" + core if core is not None else solr_base_url)
-        solr_server = solr.Solr(solr_url)
-        solr_server.delete_query(query)
-        solr_server.close()
+        solr_url = solr_base_url + "/" + core + "/update?commit=true"
+        post_dict = {"delete": {"query": query}}
+        response = http_post_json(solr_url, post_dict)
+        logging.debug("Solr delete response=%s" % response)
 
     def _query_dataset_ids(self, solr_base_url, core, query, timestamp_query):
         '''
