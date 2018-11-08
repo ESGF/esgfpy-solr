@@ -399,7 +399,11 @@ class Synchronizer(object):
         # synchronize source Solr --> target Solr
         # commit after every core query
         for source_dataset_id in source_dataset_ids.keys():
-            if source_dataset_id not in target_dataset_ids or source_dataset_ids[source_dataset_id] != target_dataset_ids[source_dataset_id]:
+            #  compare dataset ids and their _timestamps
+            if ((source_dataset_id not in target_dataset_ids) or (
+              source_dataset_ids[source_dataset_id] != target_dataset_ids[
+                  source_dataset_id])):
+
                 logging.info("\t\t\t\tCopying source dataset="
                              "%s" % source_dataset_id)
 
@@ -426,8 +430,8 @@ class Synchronizer(object):
         # must delete datasets that do NOT longer exist at the source
         for target_dataset_id in target_dataset_ids.keys():
             if target_dataset_id not in source_dataset_ids:
-                # check whether dataset still exists at the source: if yes,
-                # it will be updated; if not, must delete
+                # check whether dataset still exists at the source: 
+                # if yes, it has been updated in the previous loop; if not, delete it
                 exists = self._check_record(
                     self.source_solr_base_url,
                     CORE_DATASETS,
@@ -454,13 +458,13 @@ class Synchronizer(object):
         '''Checks for the existence of a record with a given id.'''
 
         solr_url = solr_base_url + "/" + core + "/select"
-        response = http_get_json(solr_url, {'q': 'id:%s' % record_id, 'wt': 'json'})
+        response = http_get_json(solr_url, {'q': 'id:%s' % record_id,
+                                            'wt': 'json'})
 
         if int(response["response"]['numFound']) > 0:
             return True
         else:
             return False
-
 
     def _sync_records_by_time(self, core, query, timestamp_query):
         '''
@@ -497,7 +501,7 @@ class Synchronizer(object):
         '''
 
         datasets = {}
-        solr_url = solr_base_url + "/" + core
+        url = solr_base_url + "/" + core + "/select"
 
         # send request
         params = {"q": query,
@@ -508,12 +512,8 @@ class Synchronizer(object):
                   "rows": "%s" % MAX_DATASETS_PER_HOUR,
                   "fl": ["id", "_timestamp"]
                   }
-        url = solr_url + "/select?" + urllib.parse.urlencode(params,
-                                                             doseq=True)
-        logging.debug("Solr request: %s" % url)
-        fh = urllib.request.urlopen(url)
-        jdoc = fh.read().decode("UTF-8")
-        response = json.loads(jdoc)
+
+        response = http_get_json(url, params)
         if int(response['response']['numFound']) > 0:
             for doc in response['response']['docs']:
                 datasets[doc['id']] = doc['_timestamp']
