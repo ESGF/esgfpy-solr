@@ -56,14 +56,14 @@ def migrate(sourceSolrUrl, targetSolrUrl, core,
             _maxRecords = min(maxRecords-numRecords, MAX_RECORDS_PER_REQUEST)
             (_numFound, _numRecords) = _migrate(s1, s2, core, query, fq,
                                                 start, _maxRecords,
-                                                replacements, suffix,
-                                                commit=commit)
+                                                replacements, suffix)
             numFound = _numFound
             start += _numRecords
             numRecords += _numRecords
 
         # in case of error, migrate 1 record at a time
-        except Exception:
+        except Exception as e:
+            print(e)
             for i in range(MAX_RECORDS_PER_REQUEST):
                 if start < numFound and numRecords < maxRecords:
                     try:
@@ -94,12 +94,9 @@ def migrate(sourceSolrUrl, targetSolrUrl, core,
     return numRecords
 
 
-def _migrate(s1, s2, core, query, fq, start, howManyMax,
-             replacements, suffix, commit=True):
+def _migrate(s1, s2, core, query, fq, start, howManyMax, replacements, suffix):
     '''
     Migrates 'howManyMax' records starting at 'start'.
-    By default, it commits the changes after this howManyRecords
-    have been migrated, but does NOT optimize the index.
     '''
 
     logging.info("Migrating records: start record=%s max records per request="
@@ -164,10 +161,6 @@ def _migrate(s1, s2, core, query, fq, start, howManyMax,
 
     logging.info("Response: current number of records=%s total number of "
                  "records=%s" % (start+_numRecords, _numFound))
-
-    # commit changes
-    if commit:
-        s2.commit()
 
     return (_numFound, _numRecords)
 

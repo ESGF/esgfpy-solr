@@ -6,7 +6,7 @@ import logging
 
 class SolrClient(object):
     '''
-    Class to issue query and post requests to a remote Solr server.
+    Class to issue query and post requests to a Solr server.
     '''
 
     def __init__(self, solr_base_url='http://localhost:8983/solr'):
