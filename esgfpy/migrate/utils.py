@@ -3,7 +3,7 @@ Common Solr utilities.
 '''
 import logging
 import json
-import urllib
+from urllib import parse, request
 
 
 def http_get_json(url, params):
@@ -12,13 +12,13 @@ def http_get_json(url, params):
     '''
 
     if params:
-        query_string = urllib.parse.urlencode(params, doseq=True)
+        query_string = parse.urlencode(params, doseq=True)
         url = url + "?" + query_string
 
     logging.debug("HTTP GET request: %s" % url)
 
     try:
-        with urllib.request.urlopen(url) as response:
+        with request.urlopen(url) as response:
             response_text = response.read().decode("UTF-8")
             response = json.loads(response_text)
             return response
@@ -49,10 +49,10 @@ def http_post_json(url, data_dict):
     json_data_str = to_json(data_dict)
     logging.debug("Publishing JSON data: %s" % json_data_str)
 
-    req = urllib.request.Request(url)
+    req = request.Request(url)
     req.add_header('Content-Type', 'application/json')
 
-    with urllib.request.urlopen(req, json_data_str) as response:
+    with request.urlopen(req, json_data_str) as response:
             response_text = response.read().decode("UTF-8")
             response = json.loads(response_text)
             return response

@@ -10,7 +10,6 @@ and the (min, max, mean) of the timestamp distribution.
 import logging
 import argparse
 import urllib
-import json
 import dateutil.parser
 from datetime import timedelta
 from monthdelta import monthdelta
