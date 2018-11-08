@@ -1,10 +1,12 @@
 '''
 Python module to synchronize a source and target Sorl servers.
+Records are synchronized by splitting time in progressively smaller
+intervals (months, days, hours) and looping backward
+since the records most likely to have changed were the latest to be published.
 '''
 
 import logging
 import argparse
-import sys
 import urllib
 import json
 import dateutil.parser
@@ -24,9 +26,9 @@ CORE_FILES = 'files'
 CORE_AGGREGATIONS = 'aggregations'
 CORES = [CORE_DATASETS, CORE_FILES, CORE_AGGREGATIONS]
 
-TIMEDELTA_MONTH = monthdelta(1)
-TIMEDELTA_DAY = timedelta(days=1)
-TIMEDELTA_HOUR = timedelta(hours=1)
+DELTA_MONTH = monthdelta(1)
+DELTA_DAY = timedelta(days=1)
+DELTA_HOUR = timedelta(hours=1)
 MAX_DATASETS_PER_HOUR = 10000
 
 
@@ -60,7 +62,8 @@ class Synchronizer(object):
             retDict = self._check_sync(core=core, query=query)
 
             if not retDict:
-                logging.warning("Error synchronizing core=%s, skipping it" % core)
+                logging.warning("Error synchronizing core=%s, "
+                                "skipping it" % core)
                 # skip the rest of this iteration
                 continue
 
@@ -74,24 +77,25 @@ class Synchronizer(object):
                 synced = True
 
                 # 0) full datetime interval to synchronize
-                (datetime_min,
-                 datetime_max) = self._get_sync_datetime_interval(retDict)
+                (dt_min,
+                 dt_max) = self._get_sync_dt_interval(retDict)
                 logging.info("SYNCING: core=%s start=%s stop=%s # records="
-                             "%s --> %s" % (core, datetime_min, datetime_max,
+                             "%s --> %s" % (core, dt_min, dt_max,
                                             retDict['source']['counts'],
                                             retDict['target']['counts']))
 
-                # 1) loop over MONTHS
-                datetime_stop_month = datetime_max
-                datetime_start_month = datetime_max
-                while datetime_stop_month >= (datetime_min + TIMEDELTA_MONTH):
+                # 1) loop over MONTHS - backward because it is more likely that
+                # the records that changed are the latest
+                dt_stop_month = dt_max
+                dt_start_month = dt_max
+                while dt_stop_month >= (dt_min + DELTA_MONTH):
 
-                    datetime_stop_month = datetime_start_month
-                    datetime_start_month = datetime_stop_month - TIMEDELTA_MONTH
+                    dt_stop_month = dt_start_month
+                    dt_start_month = dt_stop_month - DELTA_MONTH
                     logging.info("\tMONTH check: start=%s stop=%s" % (
-                        datetime_start_month, datetime_stop_month))
+                        dt_start_month, dt_stop_month))
                     timestamp_query_month = get_timestamp_query(
-                        datetime_start_month, datetime_stop_month)
+                        dt_start_month, dt_stop_month)
 
                     retDict = self._check_sync(core=core, query=query,
                                                fq=timestamp_query_month)
@@ -100,23 +104,23 @@ class Synchronizer(object):
                     if not retDict['status']:
                         logging.info("\tMONTH sync=%s start=%s stop=%s # "
                                      "records=%s --> %s" % (
-                                         core, datetime_start_month,
-                                         datetime_stop_month,
+                                         core, dt_start_month,
+                                         dt_stop_month,
                                          retDict['source']['counts'],
                                          retDict['target']['counts']))
 
-                        # 2) loop over DAYS
-                        datetime_stop_day = datetime_stop_month
-                        datetime_start_day = datetime_stop_month
-                        while datetime_stop_day >= (datetime_start_month + TIMEDELTA_DAY):
+                        # 2) loop over DAYS - backward
+                        dt_stop_day = dt_stop_month
+                        dt_start_day = dt_stop_month
+                        while dt_stop_day >= (dt_start_month + DELTA_DAY):
 
-                            datetime_stop_day = datetime_start_day
-                            datetime_start_day = (
-                                datetime_stop_day - TIMEDELTA_DAY)
+                            dt_stop_day = dt_start_day
+                            dt_start_day = (
+                                dt_stop_day - DELTA_DAY)
                             logging.info("\t\tDAY check: start=%s stop=%s" % (
-                                datetime_start_day, datetime_stop_day))
+                                dt_start_day, dt_stop_day))
                             timestamp_query_day = get_timestamp_query(
-                                datetime_start_day, datetime_stop_day)
+                                dt_start_day, dt_stop_day)
 
                             retDict = self._check_sync(core=core, query=query,
                                                        fq=timestamp_query_day)
@@ -125,25 +129,25 @@ class Synchronizer(object):
                             if not retDict['status']:
                                 logging.info("\t\tDAY sync=%s start=%s stop=%s"
                                              " # records=%s --> %s" % (
-                                                 core, datetime_start_day,
-                                                 datetime_stop_day,
+                                                 core, dt_start_day,
+                                                 dt_stop_day,
                                                  retDict['source']['counts'],
                                                  retDict['target']['counts']))
 
-                                # 3) loop over HOURS
-                                datetime_stop_hour = datetime_stop_day
-                                datetime_start_hour = datetime_stop_day
-                                while datetime_stop_hour >= (datetime_start_day + TIMEDELTA_HOUR):
+                                # 3) loop over HOURS - backward
+                                dt_stop_hour = dt_stop_day
+                                dt_start_hour = dt_stop_day
+                                while dt_stop_hour >= (dt_start_day + DELTA_HOUR):
 
-                                    datetime_stop_hour = datetime_start_hour
-                                    datetime_start_hour = (
-                                        datetime_stop_hour - TIMEDELTA_HOUR)
+                                    dt_stop_hour = dt_start_hour
+                                    dt_start_hour = (
+                                        dt_stop_hour - DELTA_HOUR)
                                     logging.info("\t\t\tHOUR check start=%s "
                                                  "stop=%s" % (
-                                                     datetime_start_hour,
-                                                     datetime_stop_hour))
+                                                     dt_start_hour,
+                                                     dt_stop_hour))
                                     timestamp_query_hour = get_timestamp_query(
-                                        datetime_start_hour, datetime_stop_hour)
+                                        dt_start_hour, dt_stop_hour)
 
                                     retDict = self._check_sync(core=core,
                                                                query=query,
@@ -157,8 +161,8 @@ class Synchronizer(object):
                                             "start=%s stop=%s # "
                                             "records=%s --> %s" % (
                                                 core,
-                                                datetime_start_hour,
-                                                datetime_stop_hour,
+                                                dt_start_hour,
+                                                dt_stop_hour,
                                                 retDict['source']['counts'],
                                                 retDict['target']['counts']))
 
@@ -206,7 +210,7 @@ class Synchronizer(object):
                                     break
 
                             # check FULL sync again to determine whether
-                            # the day loop can be stopped
+                            # the month loop can be stopped
                             retDict = self._check_sync(core=core, query=query)
                             if retDict['status']:
                                 logging.info("Solr servers are now in sync "
@@ -234,7 +238,7 @@ class Synchronizer(object):
                                  retDict['source']['counts'],
                                  retDict['target']['counts']))
 
-    def _get_sync_datetime_interval(self, retDict):
+    def _get_sync_dt_interval(self, retDict):
         '''
         Method to compute the full datetime interval
         over which to synchronize the two Solrs.
@@ -242,26 +246,26 @@ class Synchronizer(object):
 
         # use largest possible datetime interval
         if retDict['target']['timestamp_max'] is not None:
-            datetime_max = max(retDict['source']['timestamp_max'],
+            dt_max = max(retDict['source']['timestamp_max'],
                                retDict['target']['timestamp_max'])
         else:
-            datetime_max = retDict['source']['timestamp_max']
+            dt_max = retDict['source']['timestamp_max']
         if retDict['target']['timestamp_min'] is not None:
-            datetime_min = min(retDict['source']['timestamp_min'],
+            dt_min = min(retDict['source']['timestamp_min'],
                                retDict['target']['timestamp_min'])
         else:
-            datetime_min = retDict['source']['timestamp_min']
+            dt_min = retDict['source']['timestamp_min']
 
-        # enlarge [datetime_min, datetime_max] to an integer number of months
-        datetime_max = datetime_max + TIMEDELTA_MONTH
-        # beginning of month after datetime_max
-        datetime_max = datetime_max.replace(day=1, hour=0, minute=0, second=0,
+        # enlarge [dt_min, dt_max] to an integer number of months
+        dt_max = dt_max + DELTA_MONTH
+        # beginning of month after dt_max
+        dt_max = dt_max.replace(day=1, hour=0, minute=0, second=0,
                                             microsecond=0)
-        # beginning of datetime_min month
-        datetime_min = datetime_min.replace(day=1, hour=0, minute=0, second=0,
+        # beginning of dt_min month
+        dt_min = dt_min.replace(day=1, hour=0, minute=0, second=0,
                                             microsecond=0)
 
-        return (datetime_min, datetime_max)
+        return (dt_min, dt_max)
 
     def _check_sync(self, core=None, query=DEFAULT_QUERY,
                     fq="_timestamp:[* TO *]"):
@@ -563,7 +567,8 @@ if __name__ == '__main__':
                         "'http://solr-load-balancer:8983/solr')",
                         default='http://localhost:8983/solr')
     parser.add_argument('--query', dest='query', type=str,
-                        help="Query to subset the records namespace "
+                        help="Query to subset the records namespace in both "
+                             "the source and targer Solrs"
                              "(example: 'index_node:esgf-node.jpl.nasa.gov'",
                              default=DEFAULT_QUERY)
 

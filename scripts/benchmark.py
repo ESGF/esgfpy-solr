@@ -27,7 +27,7 @@ class SolrEndpoint():
 
 SOLR_ENDPOINTS = [
                     SolrEndpoint("AWS",
-                                 "http://a49158e4fb14f11e88f5e02bc8106d18-263704447"
+                                 "http://a1f27a255dea211e8b60502bd31928e2-1418248443"
                                  ".us-west-2.elb.amazonaws.com/solr",
                                  ""),
                     SolrEndpoint("LLNL",
@@ -45,7 +45,6 @@ SOLR_ENDPOINTS = [
                                  "localhost:8996/solr"),
                     SolrEndpoint('IPSL',
                                  'https://esgf-node.ipsl.upmc.fr/solr',
-                                 "localhost:8982/solr,"
                                  "esgf-node.jpl.nasa.gov/solr,"
                                  "esgf-node.llnl.gov/solr,"
                                  "esgdata.gfdl.noaa.gov/solr,"
@@ -107,6 +106,7 @@ SOLR_ENDPOINTS = [
 #                    ]
 
 # Dataset queries
+'''
 CORE = "datasets"
 QUERIES = [{"fq": "type:Dataset"},
            {"fq": ["project:CMIP5", "experiment:rcp60",
@@ -123,9 +123,9 @@ QUERIES = [{"fq": "type:Dataset"},
            {"fq": ["datetime_start:[* TO 2001-12-31T23:59:59Z]",
                    "datetime_stop:[2001-01-01T00:00:00Z TO *]"]}
            ]
+'''
 
 # File queries
-'''
 CORE = "files"
 QUERIES = [{"fq": "type:File"},
            {"fq": ["project:CMIP5", "experiment:decadal2001",
@@ -143,7 +143,6 @@ QUERIES = [{"fq": "type:File"},
            {"fq": ["_timestamp:[* TO 2015-12-31T23:59:59Z]",
                    "_timestamp:[2015-01-01T00:00:00Z TO *]"]}
            ]
-'''
 
 # common parameters for all queries
 COMMON_PARAMS = {'indent': ' true',

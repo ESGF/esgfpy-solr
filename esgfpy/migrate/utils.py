@@ -57,7 +57,7 @@ def http_post_json(url, data_dict):
 
 
 def get_timestamp_query(datetime_start, datetime_stop):
-    '''Builds the Solr timestamp query between a start, stop datetime.'''
+    '''Builds the Solr timestamp query between a start and stop datetimes.'''
 
     datetime_start_string = datetime_start.strftime(
         '%Y-%m-%dT%H:%M:%S.%fZ')
