@@ -12,8 +12,10 @@ def http_get_json(url, params):
     '''
 
     if params:
-        query_string = urllib.parse.urlencode(params)
+        query_string = urllib.parse.urlencode(params, doseq=True)
         url = url + "?" + query_string
+
+    logging.debug("HTTP GET request: %s" % url)
 
     try:
         with urllib.request.urlopen(url) as response:

@@ -3,6 +3,8 @@ Python module to synchronize a source and target Sorl servers.
 Records are synchronized by splitting time in progressively smaller
 intervals (months, days, hours) and looping backward
 since the records most likely to have changed were the latest to be published.
+For each interval, the synchronization process checks the total number of records
+and the (min, max, mean) of the timestamp distribution.
 '''
 
 import logging
@@ -77,6 +79,7 @@ class Synchronizer(object):
                 synced = True
 
                 # 0) full datetime interval to synchronize
+                # aka maximum time interval spanning the two Solrs
                 (dt_min,
                  dt_max) = self._get_sync_dt_interval(retDict)
                 logging.info("SYNCING: core=%s start=%s stop=%s # records="
@@ -247,23 +250,23 @@ class Synchronizer(object):
         # use largest possible datetime interval
         if retDict['target']['timestamp_max'] is not None:
             dt_max = max(retDict['source']['timestamp_max'],
-                               retDict['target']['timestamp_max'])
+                         retDict['target']['timestamp_max'])
         else:
             dt_max = retDict['source']['timestamp_max']
         if retDict['target']['timestamp_min'] is not None:
             dt_min = min(retDict['source']['timestamp_min'],
-                               retDict['target']['timestamp_min'])
+                         retDict['target']['timestamp_min'])
         else:
             dt_min = retDict['source']['timestamp_min']
 
         # enlarge [dt_min, dt_max] to an integer number of months
         dt_max = dt_max + DELTA_MONTH
         # beginning of month after dt_max
-        dt_max = dt_max.replace(day=1, hour=0, minute=0, second=0,
-                                            microsecond=0)
+        dt_max = dt_max.replace(day=1, hour=0, minute=0,
+                                second=0, microsecond=0)
         # beginning of dt_min month
-        dt_min = dt_min.replace(day=1, hour=0, minute=0, second=0,
-                                            microsecond=0)
+        dt_min = dt_min.replace(day=1, hour=0, minute=0,
+                                second=0, microsecond=0)
 
         return (dt_min, dt_max)
 
@@ -317,8 +320,7 @@ class Synchronizer(object):
         Note: cannot use solrpy because it does not work with 'stats'.
         '''
 
-        solr_url = (
-            solr_base_url + "/" + core if core is not None else solr_base_url)
+        url = solr_base_url + "/" + core + "/select"
 
         # send request
         params = {"q": query,
@@ -326,21 +328,15 @@ class Synchronizer(object):
                   "wt": "json",
                   "indent": "true",
                   "stats": "true",
-                  "stats.field": ["_timestamp"], # FIXME: no list?
+                  "stats.field": "_timestamp",
                   "rows": "0"}
-
-        url = solr_url + "/select?" + urllib.parse.urlencode(params,
-                                                             doseq=True)
-        logging.debug("Solr request: %s" % url)
 
         # default values if HTTP response cannot be retrieved
         (counts, timestamp_min, timestamp_max,
          timestamp_mean) = (-1, None, None, None)
 
         try:
-            fh = urllib.request.urlopen(url)
-            jdoc = fh.read().decode("UTF-8")
-            response = json.loads(jdoc)
+            response = http_get_json(url, params)
 
             # parse response
             # logging.debug("Solr Response: %s" % response)
