@@ -25,10 +25,12 @@ def migrate(sourceSolrUrl, targetSolrUrl, core,
             replace=None, suffix='', commit=True, optimize=True):
     '''
     By default, it commits the changes and optimizes the index
-    when all records have been migrated, but note that these client directives
+    when all records have been migrated,
+    but note that these client directives
     will be disregarded by an ESGF SolrCloud cluster.
     '''
 
+    # transform replacement string into a dictionary
     replacements = {}
     if replace is not None and len(replace) > 0:
         replaces = replace.split(":\s+")
@@ -92,8 +94,8 @@ def migrate(sourceSolrUrl, targetSolrUrl, core,
     return numRecords
 
 
-def _migrate(s1, s2, core, query, fq, start, howManyMax, replacements, suffix,
-             commit=True):
+def _migrate(s1, s2, core, query, fq, start, howManyMax,
+             replacements, suffix, commit=True):
     '''
     Migrates 'howManyMax' records starting at 'start'.
     By default, it commits the changes after this howManyRecords
@@ -126,13 +128,14 @@ def _migrate(s1, s2, core, query, fq, start, howManyMax, replacements, suffix,
             del result['_version_']
 
         # append suffix to all ID fields
-        result['id'] = result['id'] + suffix
-        result['master_id'] = result['master_id'] + suffix
-        result['instance_id'] = result['instance_id'] + suffix
-        if result.get("dataset_id", None):
-            result['dataset_id'] = result['dataset_id'] + suffix
+        if suffix:
+            result['id'] = result['id'] + suffix
+            result['master_id'] = result['master_id'] + suffix
+            result['instance_id'] = result['instance_id'] + suffix
+            if result.get("dataset_id", None):
+                result['dataset_id'] = result['dataset_id'] + suffix
 
-        # apply replacement patterns
+        # apply replacement patterns to all values
         if len(replacements) > 0:
             for key, value in result.items():
                 # multiple values
@@ -161,6 +164,11 @@ def _migrate(s1, s2, core, query, fq, start, howManyMax, replacements, suffix,
 
     logging.info("Response: current number of records=%s total number of "
                  "records=%s" % (start+_numRecords, _numFound))
+
+    # commit changes
+    if commit:
+        s2.commit()
+
     return (_numFound, _numRecords)
 
 
@@ -186,7 +194,7 @@ if __name__ == '__main__':
                         help="URL of target Solr "
                         "(example: http://localhost:8984/solr)")
     parser.add_argument('--core', dest='core', type=str,
-                        help="URL of target Solr "
+                        help="Solr core to be migrated"
                         "(example: --core datasets)",
                         default=None)
     parser.add_argument('--query', dest='query', type=str,
@@ -198,7 +206,7 @@ if __name__ == '__main__':
                         "(example: --start 1000)",
                         default=0)
     parser.add_argument('--replace', dest='replace', type=str,
-                        help="Optional string replacements for all field "
+                        help="Optional string replacements for all values "
                         "(example: --replace old_value_1:new_value_1,"
                         "old_value_2:new_value_2)",
                         default=None)
