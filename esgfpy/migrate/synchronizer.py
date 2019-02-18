@@ -386,11 +386,9 @@ class Synchronizer(object):
         numAggregations = 0
 
         # query for dataset ids from source, target Solrs
-        print("Querying source")
         source_dataset_ids = self._query_dataset_ids(self.source_solr_base_url,
                                                      CORE_DATASETS, query,
                                                      timestamp_query)
-        print("Querying target")
         target_dataset_ids = self._query_dataset_ids(self.target_solr_base_url,
                                                      CORE_DATASETS, query,
                                                      timestamp_query)
