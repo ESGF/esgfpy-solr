@@ -1,11 +1,13 @@
 import json
 import logging
-from urllib.parse import urlencode
-from urllib.request import urlopen, Request
+# from urllib.parse import urlencode
+# from urllib.request import urlopen, Request
 import ssl
+from urllib import urlencode
+from urllib2 import Request, urlopen
 from xml.etree.ElementTree import Element, SubElement, tostring
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 
 # Maximum number of records returned by a Solr query
 MAX_ROWS = 1000
@@ -38,10 +40,10 @@ def query_solr(query, fields,
     the requested fields
     '''
 
-    solr_core_url = solr_url+"/"+solr_core
+    solr_core_url = solr_url + "/" + solr_core
     queries = query.split('&')
     start = 0
-    numFound = start+1
+    numFound = start + 1
     results = []
 
     # 1) query for all matching records
@@ -61,7 +63,7 @@ def query_solr(query, fields,
             params.append(('fl', fl))
 
         # execute query to Solr
-        url = url + "?"+urlencode(params)
+        url = url + "?" + urlencode(params)
         logging.debug('Executing Solr search URL=%s' % url)
         fh = urlopen(url, context=ssl_context)
         response = fh.read().decode("UTF-8")
@@ -71,8 +73,8 @@ def query_solr(query, fields,
         numFound = jobj['response']['numFound']
         numRecords = len(jobj['response']['docs'])
         start += numRecords
-        logging.info("\t\tTotal number of records found: %s number of records "
-                     "returned: %s" % (numFound, numRecords))
+        logging.debug("\t\tTotal number of records found: %s number of records "
+                      "returned: %s" % (numFound, numRecords))
 
         # loop over result documents, add to the list
         for doc in jobj['response']['docs']:
@@ -124,8 +126,8 @@ def update_solr(update_dict, update='set',
     </add>
     '''
 
-    solr_core_url = solr_url+"/"+solr_core
-    logging.info('Updating Solr=%s' % solr_core_url)
+    solr_core_url = solr_url + "/" + solr_core
+    logging.debug('Updating Solr=%s' % solr_core_url)
 
     # process each query separately
     for query, fieldDict in update_dict.items():
@@ -136,12 +138,11 @@ def update_solr(update_dict, update='set',
         # THEN UPDATE ALL RESULTS
         # BECAUSE PAGINATION DOES NOT WORK IN BETWEEN COMMITS
         start = 0
-        numFound = start+1
+        numFound = start + 1
         xmlDocs = []
 
         # 1) query for all matching records
         while start < numFound:
-
             # query Solr, construct update document
             (xmlDoc, numFound, numRecords) = _buildSolrXml(
                 solr_core_url, queries, fieldDict, update=update, start=start)
@@ -159,7 +160,6 @@ def update_solr(update_dict, update='set',
 
 
 def _buildSolrXml(solr_core_url, queries, fieldDict, update='set', start=0):
-
     # /select URL:
     # https://esgf-node.jpl.nasa.gov:8984/solr/datasets/select?q=*%3A*&wt=json&indent=true
     url = solr_core_url + "/select"
@@ -177,7 +177,7 @@ def _buildSolrXml(solr_core_url, queries, fieldDict, update='set', start=0):
                     params.append(('fl', fval[1:]))
 
     # execute query to Solr
-    url = url + "?"+urlencode(params)
+    url = url + "?" + urlencode(params)
     logging.debug('Executing Solr search URL=%s' % url)
     fh = urlopen(url)
     response = fh.read().decode("UTF-8")

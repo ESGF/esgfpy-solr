@@ -1,44 +1,48 @@
-# Script to check and fix the 'latest' status of local replica data
-# Usage: check_replicas.py <project> <optional start_date as YYYY-MM-DD>
-# <optional stop_date as YYYY-MM-DD>
-
-import logging
+import argparse
 import datetime
-import sys
-import urllib
-from esgfpy.update.utils import query_solr, update_solr, query_esgf
+import logging
+
+from utils import query_solr, update_solr, query_esgf
 
 logging.basicConfig(level=logging.INFO)
 
 # URLs
 # local master Solr that will be checked and updated
 local_master_solr_url = 'http://localhost:8984/solr'
-# local_master_solr_url = 'http://localhost:8983/solr'
+# local_master_solr_url = 'https://esgf-fedtest.dkrz.de/solr'
 
 # any ESGF index node used to retrieve the full list
 # of the index nodes in the federation
 esgf_index_node_url = 'https://esgf-node.ipsl.upmc.fr/esg-search/search/'
 
-# by default, the script will check data that changed in the last N days
-LAST_NUMBER_OF_DAYS = 7
 
-
-def check_replicas(project,
-                   start_datetime=datetime.datetime.strftime(
-                       datetime.datetime.now() - datetime.timedelta(
-                           days=LAST_NUMBER_OF_DAYS), '%Y-%m-%dT%H:%M:%SZ'),
-                   stop_datetime=datetime.datetime.strftime(
-                       datetime.datetime.now(), '%Y-%m-%dT%H:%M:%SZ'),
-                   dry_run=False):
+def check_replicas(project, dry_run, start, end, ndays):
     """
     Checks replicas for a specific project.
     By default it will check datasets that have changed in the past week.
     start_datetime, stop_datetime must be string in the format
     "2017-01-07T00:00:00.831Z".
+
     """
-    msg = 'Checking replicas published from {} to {}'.format(start_datetime, stop_datetime)
     if dry_run:
-        msg += ' :: DRY RUN ::'
+        logging.info('=========== DRY RUN ===========')
+    if ndays:
+        if not start:
+            start_datetime = datetime.datetime.strftime(datetime.datetime.now() - datetime.timedelta(days=ndays),
+                                                        '%Y-%m-%dT%H:%M:%SZ')
+        else:
+            start_datetime = start
+        if not end:
+            stop_datetime = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%dT%H:%M:%SZ')
+        else:
+            stop_datetime = end
+    else:
+        start_datetime = None
+        stop_datetime = None
+
+    msg = 'Checking replicas published'
+    if start_datetime and stop_datetime:
+        msg += ' from {} to {}'.format(start_datetime, stop_datetime)
     logging.info(msg)
 
     # 0) retrieve the latest list of ESGF index nodes
@@ -58,6 +62,7 @@ def check_replicas(project,
 
     # counter
     num_datasets_updated = 0
+    num_datasets_unpublish = 0
 
     # Fields to query to Solr
     fields = ['id', 'master_id', 'version', '_timestamp']
@@ -65,9 +70,14 @@ def check_replicas(project,
     # 1) query local index for replicas list
     # that are flagged with latest=True
     logging.debug('Get local replicas from: {}'.format(local_master_solr_url))
-    query = ('project:%s&replica:true&latest:true' % (project))
+    query = 'replica:true&latest:true'
+    if project == 'CMIP6':
+        query += '&mip_era:{}'.format(project)
+    else:
+        query += '&project:{}'.format(project)
     replicas = query_solr(query, fields, solr_url=local_master_solr_url, solr_core='datasets')
-    replicas_ids = [i['master_id'] for i in replicas]
+    logging.info('{} replicas found at {}'.format(len(replicas), local_master_solr_url))
+    replicas_ids = [(i['master_id'], i['version']) for i in replicas]
 
     # Assert the list of replicas flagged as latest is unique
     assert len(replicas_ids) == len(set(replicas_ids))
@@ -78,16 +88,21 @@ def check_replicas(project,
     for index_node in index_nodes:
         remote_slave_solr_url = 'https://{}/solr'.format(index_node)
         try:
-            msg = 'Querying {} for {} datasets published from {} to {}'.format(remote_slave_solr_url,
-                                                                               project,
-                                                                               start_datetime,
-                                                                               stop_datetime)
+            msg = 'Querying {} for {} datasets published'.format(remote_slave_solr_url, project)
+            if start_datetime and stop_datetime:
+                msg += ' from {} to {}'.format(start_datetime, stop_datetime)
             logging.info(msg)
-            query = ('project:%s&replica:false&latest:true'
-                      '&_timestamp:[%s TO %s]' % (
-                          project, start_datetime, stop_datetime))
+
+            query = 'replica:false&latest:true'
+            if project == 'CMIP6':
+                query += '&mip_era:{}'.format(project)
+            else:
+                query += '&project:{}'.format(project)
+            if start_datetime and stop_datetime:
+                query += '&_timestamp:[{} TO {}]'.format(start_datetime, stop_datetime)
             primaries = query_solr(query, fields, solr_url=remote_slave_solr_url, solr_core='datasets')
-        except urllib.error.HTTPError:
+            logging.info('{} primaries found at {}'.format(len(primaries), remote_slave_solr_url))
+        except:
             logging.error('Error querying {}'.format(remote_slave_solr_url))
             primaries = []
 
@@ -96,74 +111,103 @@ def check_replicas(project,
         assert len(primaries_ids) == len(set(primaries_ids))
 
         # iterate over common datasets between replicas and primaries
-        logging.debug('Compare local replicas with primaries from {}'.format(remote_slave_solr_url))
-        for d in set(zip(*replicas_ids)[0]).intersection(zip(*primaries_ids)[0]):
-            replicas_versions = sorted([int(r['version']) for r in replicas if r['master_id'] == d])
-            primaries_versions = sorted([int(p['version']) for p in primaries if p['master_id'] == d])
+        if replicas_ids and primaries_ids:
+            logging.info('Compare local replicas with primaries from {}'.format(remote_slave_solr_url))
+            for d in set(zip(*replicas_ids)[0]).intersection(zip(*primaries_ids)[0]):
+                replicas_versions = sorted([int(r['version']) for r in replicas if r['master_id'] == d])
+                primaries_versions = sorted([int(p['version']) for p in primaries if p['master_id'] == d])
 
-            # If version history is different between local replicas and primaries
-            if replicas_versions != primaries_versions:
-                # Compare latest version
-                if replicas_versions[-1] < primaries_versions[-1]:
-                    msg = 'Found newer latest version {} for dataset {} at site {}'.format(primaries_versions[-1],
-                                                                                           d,
-                                                                                           remote_slave_solr_url)
+                # If version history is different between local replicas and primaries
+                if replicas_versions != primaries_versions:
+                    # Compare latest version
+                    if replicas_versions[-1] < primaries_versions[-1]:
+                        msg = 'Found newer'
+                        # Update solr latest flag metadata
+                        # 3) set latest flag of local replica to false for datasets, files, aggregations
+                        if not dry_run:
+                            update_dict = {'id:%s' % d: {'latest': ['false']}}
+                            update_solr(update_dict,
+                                        update='set',
+                                        solr_url=local_master_solr_url,
+                                        solr_core='datasets')
+                            update_dict = {'dataset_id:%s' % d: {'latest': ['false']}}
+                            update_solr(update_dict,
+                                        update='set',
+                                        solr_url=local_master_solr_url,
+                                        solr_core='files')
+                            update_solr(update_dict,
+                                        update='set',
+                                        solr_url=local_master_solr_url,
+                                        solr_core='aggregations')
+                        # increase counter
+                        num_datasets_updated += 1
+                    else:
+                        msg = 'Found older'
+                        with open('to_unpublished.txt', 'a') as f:
+                            f.write('{}#{}\n'.format(d, replicas_versions[-1]))
+                        # increase counter
+                        num_datasets_unpublish += 1
+                    msg += ' latest version {} for dataset {} at site {}'.format(primaries_versions[-1],
+                                                                                 d,
+                                                                                 remote_slave_solr_url)
                     logging.warn(msg)
-                    # Update solr latest flag metadata
-                    # 3) set latest flag of local replica to false for datasets, files, aggregations
-                    if not dry_run:
-                        update_dict = {'id:%s' % d: {'latest': ['false']}}
-                        update_solr(update_dict,
-                                    update='set',
-                                    solr_url=local_master_solr_url,
-                                    solr_core='datasets')
-                        update_dict = {'dataset_id:%s' % d: {'latest': ['false']}}
-                        update_solr(update_dict,
-                                    update='set',
-                                    solr_url=local_master_solr_url,
-                                    solr_core='files')
-                        update_solr(update_dict,
-                                    update='set',
-                                    solr_url=local_master_solr_url,
-                                    solr_core='aggregations')
-                    # increase counter
-                    num_datasets_updated += 1
-                else:
-                    logging.warn("\t\tFound older latest master version: %s for dataset: %s at site: %s" % (
-                        max(replicas_versions), d, remote_slave_solr_url))
-                    # TODO: Trigger unpublication ??
+        else:
+            logging.info('Any local replicas match primaries from {}'.format(remote_slave_solr_url))
 
-    msg = 'Total number of local replicas updated: {}'.format(num_datasets_updated)
+    logging.info('Total number of local replicas updated: {}\n'.format(num_datasets_updated))
+    logging.info('Total number of local replicas to unpublish: {}'.format(num_datasets_unpublish))
     logging.info(msg)
 
+
+def get_args():
+    """
+    Returns parsed command-line arguments.
+
+    :returns: The argument parser
+    :rtype: *argparse.Namespace*
+
+    """
+    main = argparse.ArgumentParser(
+        prog='check_replicas',
+        description="""Script to check and fix the 'latest' status of local replica data
+        Usage: check_replicas.py <project> <optional start_date as YYYY-MM-DD>
+        <optional stop_date as YYYY-MM-DD>
+        """)
+    main.add_argument(
+        '-p', '--project',
+        metavar='PROJECT',
+        type=str,
+        help="Project ID")
+    main.add_argument(
+        '-d', '--dry-run',
+        action='store_true',
+        default=False,
+        help="Dry run mode")
+    main.add_argument(
+        '-s', '--start',
+        metavar='START_DATE',
+        type=str,
+        default=None,
+        help="Start date of the discovery as YYYY-MM-DD")
+    main.add_argument(
+        '-e', '--end',
+        metavar='END_DATE',
+        type=str,
+        default=None,
+        help="End date of the discovery as YYYY-MM-DD")
+    main.add_argument(
+        '-n', '--ndays',
+        metavar='LAST_NUMBER_OF_DAYS',
+        type=int,
+        default=None,
+        help="Check data that changed in the last N days. Default set to one week.")
+    return main.parse_args()
+
+
 if __name__ == '__main__':
-
-    if len(sys.argv) < 2 or len(sys.argv) > 5:
-        logging.error("Usage: check_replicas.py <project> "
-                      "<optional start_date as YYYY-MM-DD> "
-                      "<optional stop_date as YYYY-MM-DD> "
-                      "<optional '--dry_run'>")
-        sys.exit(-1)
-
-    elif len(sys.argv) == 2:
-        check_replicas(sys.argv[1])
-
-    elif len(sys.argv) == 3:
-        check_replicas(sys.argv[1],
-                       start_datetime="%sT00:00:00.000Z" % sys.argv[2])
-
-    elif len(sys.argv) == 4:
-        check_replicas(sys.argv[1],
-                       start_datetime="%sT00:00:00.000Z" % sys.argv[2],
-                       stop_datetime="%sT00:00:00.000Z" % sys.argv[3])
-
-    elif len(sys.argv) == 5:
-        if 'dry_run' in sys.argv[4]:
-            dry_run = True
-        else:
-            dry_run = False
-
-        check_replicas(sys.argv[1],
-                       start_datetime="%sT00:00:00.000Z" % sys.argv[2],
-                       stop_datetime="%sT00:00:00.000Z" % sys.argv[3],
-                       dry_run=dry_run)
+    args = get_args()
+    check_replicas(project=args.project,
+                   dry_run=args.dry_run,
+                   start=args.start,
+                   end=args.end,
+                   ndays=args.ndays)
