@@ -1,7 +1,7 @@
 import logging
 from utils import query_solr, update_solr
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 # local master Solr that will be checked and updated
 local_master_solr_url = 'http://localhost:8984/solr'
@@ -10,8 +10,9 @@ local_master_solr_url = 'http://localhost:8984/solr'
 fields = ['id', 'master_id', 'version']
 
 logging.debug('Get affected dataset id from: {}'.format(local_master_solr_url))
-query = 'replica:false'
+query = 'replica:true'
 query += '&mip_era:CMIP6'
+query += '&institution_id:CNRM-CERFACS'
 query += '&grid:regular*1/2*lat-lon*grid'
 res = query_solr(query, fields, solr_url=local_master_solr_url, solr_core='datasets')
 logging.info('{} datasets found at {}'.format(len(res), local_master_solr_url))
