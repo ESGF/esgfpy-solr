@@ -4,7 +4,7 @@ import logging
 
 from utils import query_solr, update_solr, query_esgf
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 # URLs
 # local master Solr that will be checked and updated
