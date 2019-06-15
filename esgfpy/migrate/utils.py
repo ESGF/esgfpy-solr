@@ -15,7 +15,7 @@ def http_get_json(url, params):
         query_string = parse.urlencode(params, doseq=True)
         url = url + "?" + query_string
 
-    logging.debug("HTTP GET request: %s" % url)
+    logging.info("HTTP GET request: %s" % url)
 
     try:
         with request.urlopen(url) as response:
