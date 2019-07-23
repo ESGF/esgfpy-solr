@@ -5,6 +5,10 @@ import logging
 import json
 from urllib import parse, request
 
+# timeout for all HTTP requests
+TIMEOUT_SECS = 10
+MAX_TRIES = 3
+
 
 def http_get_json(url, params):
     '''
@@ -17,15 +21,18 @@ def http_get_json(url, params):
 
     logging.info("HTTP GET request: %s" % url)
 
-    try:
-        with request.urlopen(url) as response:
-            response_text = response.read().decode("UTF-8")
-            response = json.loads(response_text)
-            return response
+    # try at most MAX_TRIES times
+    for _ in range(0, MAX_TRIES):
+        try:
+            with request.urlopen(url, timeout=TIMEOUT_SECS) as response:
+                response_text = response.read().decode("UTF-8")
+                response = json.loads(response_text)
+                return response
 
-    except Exception as e:
-        logging.warning(e)
-        return None
+        except Exception as e:
+            logging.warning(e)
+
+    return None
 
 
 def to_json(data):
@@ -52,10 +59,17 @@ def http_post_json(url, data_dict):
     req = request.Request(url)
     req.add_header('Content-Type', 'application/json')
 
-    with request.urlopen(req, json_data_str) as response:
-            response_text = response.read().decode("UTF-8")
-            response = json.loads(response_text)
-            return response
+    # try at most MAX_TRIES times
+    for _ in range(0, MAX_TRIES):
+        try:
+            with request.urlopen(req, json_data_str, timeout=TIMEOUT_SECS) as response:
+                response_text = response.read().decode("UTF-8")
+                response = json.loads(response_text)
+                return response
+        except Exception as e:
+            logging.warning(e)
+
+    return None
 
 
 def get_timestamp_query(datetime_start, datetime_stop):
