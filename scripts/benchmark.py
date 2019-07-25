@@ -26,10 +26,10 @@ class SolrEndpoint():
 
 
 SOLR_ENDPOINTS = [
-                    SolrEndpoint("AWS",
-                                 "http://a1f27a255dea211e8b60502bd31928e2-1418248443"
-                                 ".us-west-2.elb.amazonaws.com/solr",
-                                 ""),
+                    #SolrEndpoint("AWS",
+                    #             "http://a1f27a255dea211e8b60502bd31928e2-1418248443"
+                    #             ".us-west-2.elb.amazonaws.com/solr",
+                    #             ""),
                     SolrEndpoint("LLNL",
                                  "http://esgf-node.llnl.gov/solr",
                                  "localhost:8983/solr,"
@@ -38,27 +38,26 @@ SOLR_ENDPOINTS = [
                                  "localhost:8988/solr,"
                                  "localhost:8990/solr,"
                                  "localhost:8991/solr,"
-                                 "localhost:8992/solr,"
                                  "localhost:8993/solr,"
                                  "localhost:8994/solr,"
                                  "localhost:8995/solr,"
-                                 "localhost:8996/solr"),
+                                 "localhost:8996/solr,"
+                                 "localhost:8997/solr"),
+                    # Note: no shard for "esgf.nccs.nasa.gov/solr," in IPSL configuration
                     SolrEndpoint('IPSL',
                                  'https://esgf-node.ipsl.upmc.fr/solr',
-                                 "esgf-node.jpl.nasa.gov/solr,"
                                  "esgf-node.llnl.gov/solr,"
-                                 "esgdata.gfdl.noaa.gov/solr,"
-                                 "esgf.nccs.nasa.gov/solr,"
                                  "esgf.nci.org.au/solr,"
                                  "esgf-data.dkrz.de/solr,"
                                  "esgf-node.ipsl.upmc.fr/solr,"
                                  "esg-dn1.nsc.liu.se/solr,"
                                  "esgf-index1.ceda.ac.uk/solr,"
                                  "esgf-index3.ceda.ac.uk/solr,"
-                                 "esg.pik-potsdam.de/solr"),
+                                 "esgf-index4.ceda.ac.uk/solr,"
+                                 "esg.pik-potsdam.de/solr,"
+                                 "esgdata.gfdl.noaa.gov/solr"),
                     SolrEndpoint('CEDA',
                                  'https://esgf-index1.ceda.ac.uk/solr',
-                                 "esgf-index2.ceda.ac.uk:8997/solr,"
                                  "esgf-index2.ceda.ac.uk:8998/solr,"
                                  "esgf-index2.ceda.ac.uk:9001/solr,"
                                  "esgf-index2.ceda.ac.uk:9003/solr,"
@@ -68,12 +67,12 @@ SOLR_ENDPOINTS = [
                                  "esgf-index2.ceda.ac.uk:9005/solr,"
                                  "esgf-index2.ceda.ac.uk:9004/solr,"
                                  "localhost:8983/solr,"
-                                 "esgf-index3.ceda.ac.uk:8983/solr"),
+                                 "esgf-index3.ceda.ac.uk:8983/solr,"
+                                 "esgf-index4.ceda.ac.uk:8983/solr"),
                     SolrEndpoint('DKRZ',
                                  "https://esgf-data.dkrz.de/solr",
                                  "localhost:8983/solr,"
                                  "localhost:8982/solr,"
-                                 "localhost:8986/solr,"
                                  "localhost:8987/solr,"
                                  "localhost:8988/solr,"
                                  "localhost:8989/solr,"
@@ -82,22 +81,11 @@ SOLR_ENDPOINTS = [
                                  "localhost:8994/solr,"
                                  "localhost:8995/solr,"
                                  "localhost:8997/solr,"
+                                 "localhost:8997/solr,"
                                  "esgdata.gfdl.noaa.gov/solr,"
-                                 "localhost:8998/solr"),
-                    SolrEndpoint('JPL',
-                                 'https://esgf-node.jpl.nasa.gov/solr',
-                                 "localhost/solr,"
-                                 "localhost:8982/solr,"
-                                 "localhost:8990/solr,"
-                                 "localhost:8985/solr,"
-                                 "localhost:8991/solr,"
-                                 "localhost:8993/solr,"
-                                 "localhost:8986/solr,"
-                                 "localhost:8987/solr,"
-                                 "localhost:8988/solr,"
-                                 "esgf-index1.ceda.ac.uk/solr,"
-                                 "localhost:8995/solr,"
-                                 "localhost:8994/solr")
+                                 "localhost:8998/solr,"
+                                 "localhost:8998/solr"
+                                 )
                     ]
 #SOLR_ENDPOINTS = [
 #                    SolrEndpoint("GCP",
@@ -106,7 +94,6 @@ SOLR_ENDPOINTS = [
 #                    ]
 
 # Dataset queries
-'''
 CORE = "datasets"
 QUERIES = [{"fq": "type:Dataset"},
            {"fq": ["project:CMIP5", "experiment:rcp60",
@@ -123,8 +110,8 @@ QUERIES = [{"fq": "type:Dataset"},
            {"fq": ["datetime_start:[* TO 2001-12-31T23:59:59Z]",
                    "datetime_stop:[2001-01-01T00:00:00Z TO *]"]}
            ]
-'''
 
+'''
 # File queries
 CORE = "files"
 QUERIES = [{"fq": "type:File"},
@@ -143,6 +130,7 @@ QUERIES = [{"fq": "type:File"},
            {"fq": ["_timestamp:[* TO 2015-12-31T23:59:59Z]",
                    "_timestamp:[2015-01-01T00:00:00Z TO *]"]}
            ]
+'''
 
 # common parameters for all queries
 COMMON_PARAMS = {'indent': ' true',
